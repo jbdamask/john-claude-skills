@@ -6,13 +6,12 @@
   },
   "metadata": {
     "description": "A collection of Claude Code plugins for development workflows",
-    "version": "1.0.0",
-    "pluginRoot": "./plugins"
+    "version": "1.0.0"
   },
   "plugins": [
     {
       "name": "devlog",
-      "source": "devlog",
+      "source": "./plugins/devlog",
       "description": "Create and maintain a DEVLOG.md file capturing the development story of a project",
       "version": "1.0.0",
       "author": {
