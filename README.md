@@ -1,6 +1,6 @@
-# John's Claude Code Marketplace
+# John's Claude Code Skills Marketplace
 
-A collection of Claude Code plugins for development workflows.
+A collection of Claude Code skills for development workflows.
 
 ## Installation
 
@@ -10,19 +10,23 @@ Add this marketplace to Claude Code:
 /plugin marketplace add jbdamask/john-claude-skills
 ```
 
-Then install individual plugins:
+Then install the skills:
 
 ```shell
-/plugin install devlog@john-claude-skills
+/plugin install john-skills@john-claude-skills
 ```
 
-## Available Plugins
+## Available Skills
 
 ### devlog
 
 Create and maintain a `DEVLOG.md` file capturing the development story of a project.
 
-**Usage:** Run `/devlog` to update your project's development log.
+**Invoke when:**
+- You want to update the devlog
+- You need to document project progress
+- After completing significant milestones
+- Before context switches
 
 **Features:**
 - Gathers context from planning documents, chat history, and git commits
@@ -31,14 +35,13 @@ Create and maintain a `DEVLOG.md` file capturing the development story of a proj
 
 ## Contributing
 
-To add a new plugin:
+To add a new skill:
 
-1. Create a directory under `plugins/<plugin-name>/`
-2. Add `.claude-plugin/plugin.json` with plugin metadata
-3. Add commands in `plugins/<plugin-name>/commands/`
-4. Update the marketplace manifest in `.claude-plugin/marketplace.json`
+1. Create a directory under `skills/<skill-name>/`
+2. Add a `SKILL.md` file with YAML frontmatter (`name`, `description`) and instructions
+3. Update the `skills` array in `.claude-plugin/marketplace.json`
 
 ## Resources
 
-- [Claude Code Plugin Documentation](https://code.claude.com/docs/en/plugins)
-- [Plugin Marketplaces](https://code.claude.com/docs/en/plugin-marketplaces)
+- [Agent Skills Specification](https://agentskills.io/specification)
+- [Claude Code Plugin Marketplaces](https://code.claude.com/docs/en/plugin-marketplaces)

@@ -5,20 +5,18 @@
     "email": "jbdamask@gmail.com"
   },
   "metadata": {
-    "description": "A collection of Claude Code plugins for development workflows",
+    "description": "A collection of Claude Code skills for development workflows",
     "version": "1.0.0"
   },
   "plugins": [
     {
-      "name": "devlog",
-      "source": "./plugins/devlog",
-      "description": "Create and maintain a DEVLOG.md file capturing the development story of a project",
-      "version": "1.0.0",
-      "author": {
-        "name": "John Damask"
-      },
-      "keywords": ["documentation", "devlog", "development", "logging"],
-      "category": "documentation"
+      "name": "john-skills",
+      "description": "Collection of development workflow skills including devlog for capturing project history",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/devlog"
+      ]
     }
   ]
 }

@@ -1,3 +1,10 @@
+---
+name: devlog
+description: Create and maintain a DEVLOG.md file capturing the development story of a project. Use this periodically over the course of a project to capture important information about the development story. Invoke when the user asks to update the devlog, create a devlog, document project progress, or capture development history. Also appropriate after completing significant milestones or before context switches.
+---
+
+# DevLog
+
 Create and maintain `DEVLOG.md` in the project root with a chronological record of development activity. The devlog should be detailed enough to reconstruct the development narrative, but not an exhaustive transcript.
 
 ## Workflow
