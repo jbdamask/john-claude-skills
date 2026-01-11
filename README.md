@@ -1,15 +1,44 @@
-> **Note:** This repository contains my implementation of skills for Claude. For information about the Agent Skills standard, see [agentskills.io](http://agentskills.io).
+# John's Claude Code Marketplace
 
-# Skills
-Skills are folders of instructions, scripts, and resources that Claude loads dynamically to improve performance on specialized tasks. Skills teach Claude how to complete specific tasks in a repeatable way, whether that's creating documents with your company's brand guidelines, analyzing data using your organization's specific workflows, or automating personal tasks.
+A collection of Claude Code plugins for development workflows.
 
-For more information, check out:
-- [What are skills?](https://support.claude.com/en/articles/12512176-what-are-skills)
-- [Using skills in Claude](https://support.claude.com/en/articles/12512180-using-skills-in-claude)
-- [How to create custom skills](https://support.claude.com/en/articles/12512198-creating-custom-skills)
-- [Equipping agents for the real world with Agent Skills](https://anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)
+## Installation
 
-# About This Repository
+Add this marketplace to Claude Code:
 
-This repository contains skills I created along the way. Some will be more useful than others
-y
+```shell
+/plugin marketplace add jbdamask/john-claude-skills
+```
+
+Then install individual plugins:
+
+```shell
+/plugin install devlog@john-claude-skills
+```
+
+## Available Plugins
+
+### devlog
+
+Create and maintain a `DEVLOG.md` file capturing the development story of a project.
+
+**Usage:** Run `/devlog` to update your project's development log.
+
+**Features:**
+- Gathers context from planning documents, chat history, and git commits
+- Creates chronological entries with summaries, details, and references
+- Maintains a structured format for easy reading and searching
+
+## Contributing
+
+To add a new plugin:
+
+1. Create a directory under `plugins/<plugin-name>/`
+2. Add `.claude-plugin/plugin.json` with plugin metadata
+3. Add commands in `plugins/<plugin-name>/commands/`
+4. Update the marketplace manifest in `.claude-plugin/marketplace.json`
+
+## Resources
+
+- [Claude Code Plugin Documentation](https://code.claude.com/docs/en/plugins)
+- [Plugin Marketplaces](https://code.claude.com/docs/en/plugin-marketplaces)

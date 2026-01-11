@@ -1,0 +1,25 @@
+{
+  "name": "john-claude-skills",
+  "owner": {
+    "name": "John Damask",
+    "email": "jbdamask@gmail.com"
+  },
+  "metadata": {
+    "description": "A collection of Claude Code plugins for development workflows",
+    "version": "1.0.0",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "devlog",
+      "source": "devlog",
+      "description": "Create and maintain a DEVLOG.md file capturing the development story of a project",
+      "version": "1.0.0",
+      "author": {
+        "name": "John Damask"
+      },
+      "keywords": ["documentation", "devlog", "development", "logging"],
+      "category": "documentation"
+    }
+  ]
+}
