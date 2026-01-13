@@ -27,6 +27,20 @@ marketplace-repo/
 └── README.md
 ```
 
+## Plugin Structure with Skills
+
+Plugins containing skills should have this structure:
+```
+plugins/my-plugin/
+├── .claude-plugin/
+│   └── plugin.json      # NO "skills" field - skills are auto-discovered
+└── skills/
+    └── my-skill/
+        └── SKILL.md
+```
+
+**Important:** Do NOT add a `skills` field to plugin.json. Skills are automatically discovered from the `skills/` directory.
+
 ## Marketplace JSON Schema
 
 ### Required Fields

@@ -73,3 +73,8 @@ Event handlers (PreToolUse, PostToolUse, Notification, Stop):
 ## Environment Variables
 
 - `${CLAUDE_PLUGIN_ROOT}` - Absolute path to plugin installation
+
+## Invalid Fields
+
+These fields are NOT valid in plugin.json:
+- `skills` - Skills are auto-discovered from the `skills/` directory

@@ -68,6 +68,15 @@ def validate_marketplace(path: str) -> tuple[bool, list[str]]:
                 full_path = os.path.join(path, plugin["source"])
                 if not os.path.exists(full_path):
                     errors.append(f"plugins[{i}]: source path not found: {plugin['source']}")
+                else:
+                    # Validate plugin.json doesn't have invalid fields
+                    plugin_json_path = os.path.join(full_path, ".claude-plugin", "plugin.json")
+                    if os.path.exists(plugin_json_path):
+                        with open(plugin_json_path) as pf:
+                            pdata = json.load(pf)
+                        invalid_fields = {"skills"} & set(pdata.keys())
+                        if invalid_fields:
+                            errors.append(f"plugins[{i}]: plugin.json has invalid fields: {invalid_fields}")
     
     return len(errors) == 0, errors
 
