@@ -41,9 +41,12 @@ If gitingest is not found, ask the user how they'd like to install it:
 
 **Options:**
 - **Specify path** - User provides path to existing venv or installation
-- **Create a venv for me** - Convenience option: look up the venv-manager skill by name/description and use it to create a venv and install the package
+- **Create a venv for me** - Convenience option: look up the venv-manager skill and follow its conventions
 
-If user chooses the convenience option, discover and invoke a venv-manager skill to handle the installation. Do not hardcode venv paths - let the venv-manager skill decide the organization.
+If user chooses the convenience option:
+1. Look for a venv-manager skill by name/description
+2. If found, follow its conventions to create the venv and install the package
+3. If NOT found, inform the user: "The venv-manager skill isn't available. Would you like to specify a path manually, or should I create a venv at ~/.venvs/gitingest/?"
 
 ### 3. Identify the Target
 
