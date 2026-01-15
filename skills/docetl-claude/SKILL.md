@@ -70,6 +70,47 @@ Work like a data analyst: **write → run → inspect → iterate**. Never write
 
 **Key principle:** The user should see results at every step. Don't proceed to the next phase until the current phase produces good results.
 
+## Required Package
+
+This skill requires the `docetl` Python package.
+
+### Check if DocETL is Available
+
+First, check if docetl is already installed and accessible:
+
+```bash
+which docetl || echo "NOT_FOUND"
+```
+
+Also check common venv locations:
+```bash
+ls ~/.venvs/docetl/bin/docetl 2>/dev/null && echo "EXISTS" || echo "NOT_IN_VENVS"
+```
+
+### If Not Installed, Ask User
+
+If docetl is not found, ask the user how they'd like to install it:
+
+**Ask:** "The `docetl` package is required but not installed. How would you like to install it?"
+
+**Options:**
+- **Specify path** - User provides path to existing venv or installation
+- **Create a venv for me** - Convenience option: look up the venv-manager skill and follow its conventions
+
+If user chooses the convenience option:
+1. Look for a venv-manager skill by name/description
+2. If found, follow its conventions to create the venv and install the package
+3. If NOT found, inform the user: "The venv-manager skill isn't available. Would you like to specify a path manually, or should I create a venv at ~/.venvs/docetl/?"
+
+### Running DocETL Commands
+
+Once installed, run docetl using the path determined above. Examples use `<docetl>` as placeholder for the actual path:
+
+```bash
+<docetl> run pipeline.yaml
+<docetl> build pipeline.yaml --optimizer moar
+```
+
 ## Step 1: Data Preparation
 
 DocETL datasets must be **JSON arrays** or **CSV files**.
@@ -572,7 +613,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 ### Test Run (Required)
 Add `sample: 10-20` to your first operation, then run:
 ```bash
-docetl run pipeline.yaml
+<docetl> run pipeline.yaml
 ```
 
 **Inspect the test results before proceeding:**
@@ -637,7 +678,7 @@ def evaluate(outputs: list[dict]) -> dict:
 
 Run optimization:
 ```bash
-docetl build pipeline.yaml --optimizer moar
+<docetl> build pipeline.yaml --optimizer moar
 ```
 
 MOAR will produce multiple pipeline variants on the Pareto frontier - user can choose based on their cost/accuracy preferences.
@@ -767,17 +808,19 @@ Look in `intermediate_dir` folder to debug each step.
 
 ```bash
 # Run pipeline
-docetl run pipeline.yaml
+<docetl> run pipeline.yaml
 
 # Run with more parallelism
-docetl run pipeline.yaml --max_threads 16
+<docetl> run pipeline.yaml --max_threads 16
 
 # Optimize pipeline (cost/accuracy tradeoff)
-docetl build pipeline.yaml --optimizer moar
+<docetl> build pipeline.yaml --optimizer moar
 
 # Clear LLM cache
-docetl clear-cache
+<docetl> clear-cache
 
 # Check version
-docetl version
+<docetl> version
 ```
+
+**Note:** Replace `<docetl>` with the actual path (e.g., `~/.venvs/docetl/bin/docetl`).
