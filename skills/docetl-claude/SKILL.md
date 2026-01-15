@@ -155,7 +155,7 @@ This understanding is essential for writing specific, effective prompts.
 Create a YAML file with this structure:
 
 ```yaml
-default_model: claude-haiku-4
+default_model: anthropic/claude-haiku-4-5-20251001
 
 system_prompt:
   dataset_description: <describe the data based on what you observed>
@@ -189,7 +189,7 @@ pipeline:
 
 ### Key Configuration
 
-- **default_model**: Use `claude-haiku-4` for all operations (fast and cost-effective)
+- **default_model**: Use `anthropic/claude-haiku-4-5-20251001` for all operations (fast and cost-effective)
 - **intermediate_dir**: Always set to log intermediate results
 - **system_prompt**: Describe the data based on what you actually observed
 
@@ -197,10 +197,10 @@ pipeline:
 
 | Operation Type | Recommended Model | Rationale |
 |---------------|-------------------|-----------|
-| Map (extraction) | `claude-haiku-4` | High volume, fast per-doc tasks |
-| Filter | `claude-haiku-4` | Simple yes/no decisions |
-| Reduce (summarization) | `claude-haiku-4` | Synthesis across many docs |
-| Resolve (deduplication) | `claude-haiku-4` | Pairwise comparisons |
+| Map (extraction) | `anthropic/claude-haiku-4-5-20251001` | High volume, fast per-doc tasks |
+| Filter | `anthropic/claude-haiku-4-5-20251001` | Simple yes/no decisions |
+| Reduce (summarization) | `anthropic/claude-haiku-4-5-20251001` | Synthesis across many docs |
+| Resolve (deduplication) | `anthropic/claude-haiku-4-5-20251001` | Pairwise comparisons |
 
 Claude Haiku is optimized for speed and cost-effectiveness while maintaining high quality output.
 
@@ -276,7 +276,7 @@ Applies an LLM transformation to each document independently.
     schema:
       topic: string
       key_points: list[string]
-  model: claude-haiku-4  # optional, uses default_model if not set
+  model: anthropic/claude-haiku-4-5-20251001  # optional, uses default_model if not set
   skip_on_error: true  # recommended for large-scale runs
   validate:  # optional
     - len(output["key_points"]) == 3
@@ -386,7 +386,7 @@ Divides long text into smaller chunks. No LLM call.
   method: token_count  # or "delimiter"
   method_kwargs:
     num_tokens: 500
-    model: claude-haiku-4
+    model: anthropic/claude-haiku-4-5-20251001
 ```
 
 **Output adds:**
@@ -619,13 +619,12 @@ optimizer_config:
   type: moar
   save_dir: ./optimization_results
   available_models:
-    - claude-haiku-4
-    - claude-sonnet-4
-    - claude-opus-4
+    - anthropic/claude-haiku-4-5-20251001
+    - anthropic/claude-sonnet-4-20250514
   evaluation_file: evaluate.py  # User must provide
   metric_key: score
   max_iterations: 20
-  model: claude-haiku-4
+  model: anthropic/claude-haiku-4-5-20251001
 ```
 
 Create evaluation file (`evaluate.py`):
