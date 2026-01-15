@@ -475,6 +475,15 @@ Deterministic Python transformations without LLM calls.
 
 ```
 
+<advanced-feature instruction="Do not use unless user explicitly requests cross-document retrieval, RAG, or similarity search">
+<!--
+NOTE: This retriever feature is marked "do not use" because this is a Claude skill designed
+for the Claude web application, which blocks access to OpenAI domains. Retrievers typically
+require embedding models (like OpenAI's text-embedding-3-small), which won't work in that
+environment. However, this feature could potentially be used from Claude Code or other
+environments where embedding API access is available.
+-->
+
 ### Retrievers (LanceDB)
 
 Augment LLM operations with retrieved context from a LanceDB index. Useful for:
@@ -528,6 +537,8 @@ retrievers:
 - Supports full-text (`fts`), vector (`embedding`), or `hybrid` search
 - Use `save_retriever_output: true` to debug what was retrieved
 - **Can index intermediate outputs**: Retriever can index the output of a previous pipeline step, enabling patterns like "extract facts → index facts → retrieve similar facts for each"
+
+</advanced-feature>
 
 ## Documentation Reference
 
