@@ -14,74 +14,64 @@ Convert any Git repository into a prompt-friendly text file for LLM consumption.
 - User mentions "ingest", "digest", or converting a repo to text
 - User wants to prepare code for LLM context
 
-## Prerequisites
+## Required Package
 
-GitIngest must be installed in a virtual environment. Never install directly to the host system.
-
-### Setup Virtual Environment
-
-Create a dedicated venv for gitingest (one-time setup):
-
-```bash
-python3 -m venv ~/.venvs/gitingest
-source ~/.venvs/gitingest/bin/activate
-pip install gitingest
-deactivate
-```
-
-### Running GitIngest
-
-Always activate the venv before running:
-
-```bash
-source ~/.venvs/gitingest/bin/activate
-gitingest <args>
-deactivate
-```
-
-Or run directly without activating:
-
-```bash
-~/.venvs/gitingest/bin/gitingest <args>
-```
-
-### Check Installation
-
-```bash
-~/.venvs/gitingest/bin/gitingest --version
-```
-
-If the venv doesn't exist, create it using the setup steps above.
+This skill requires the `gitingest` Python package.
 
 ## Workflow
 
-### 1. Identify the Target
+### 1. Check if GitIngest is Available
 
-Determine what the user wants to ingest:
+First, check if gitingest is already installed and accessible:
+
+```bash
+which gitingest || echo "NOT_FOUND"
+```
+
+Also check common venv locations:
+```bash
+ls ~/.venvs/gitingest/bin/gitingest 2>/dev/null || echo "NOT_IN_VENVS"
+```
+
+### 2. If Not Installed, Ask User
+
+If gitingest is not found, ask the user how they'd like to install it:
+
+**Ask:** "The `gitingest` package is required but not installed. How would you like to install it?"
+
+**Options:**
+- **Specify path** - User provides path to existing venv or installation
+- **Create a venv for me** - Convenience option: look up the venv-manager skill by name/description and use it to create a venv and install the package
+
+If user chooses the convenience option, discover and invoke a venv-manager skill to handle the installation. Do not hardcode venv paths - let the venv-manager skill decide the organization.
+
+### 3. Identify the Target
+
+Once gitingest is available, determine what the user wants to ingest:
 - **Local directory:** A path on the filesystem
 - **GitHub URL:** A repository URL like `https://github.com/owner/repo`
 - **Current directory:** If unspecified, confirm with user
 
-### 2. Run GitIngest
+### 4. Run GitIngest
 
-Use the venv binary directly (recommended) or activate the venv first.
+Run gitingest using the path determined in steps 1-2. Examples use `<gitingest>` as placeholder for the actual path:
 
 **For a local directory:**
 ```bash
-~/.venvs/gitingest/bin/gitingest /path/to/repository -o output.txt
+<gitingest> /path/to/repository -o output.txt
 ```
 
 **For a GitHub repository:**
 ```bash
-~/.venvs/gitingest/bin/gitingest https://github.com/owner/repo -o output.txt
+<gitingest> https://github.com/owner/repo -o output.txt
 ```
 
 **For the current directory:**
 ```bash
-~/.venvs/gitingest/bin/gitingest . -o output.txt
+<gitingest> . -o output.txt
 ```
 
-### 3. Common Options
+### 5. Common Options
 
 | Option | Description |
 |--------|-------------|
@@ -92,16 +82,16 @@ Use the venv binary directly (recommended) or activate the venv first.
 
 **Private repositories:** If the user needs to ingest a private repo, they must provide a GitHub token:
 ```bash
-~/.venvs/gitingest/bin/gitingest https://github.com/owner/private-repo -t <GITHUB_TOKEN> -o output.txt
+<gitingest> https://github.com/owner/private-repo -t <GITHUB_TOKEN> -o output.txt
 ```
 
 Or set the environment variable:
 ```bash
 export GITHUB_TOKEN=<token>
-~/.venvs/gitingest/bin/gitingest https://github.com/owner/private-repo -o output.txt
+<gitingest> https://github.com/owner/private-repo -o output.txt
 ```
 
-### 4. Output
+### 6. Output
 
 GitIngest produces a text file containing:
 - Repository structure (directory tree)
@@ -112,27 +102,6 @@ After running, confirm success and report:
 - Output file location
 - Approximate size/token count if available
 - Any warnings or skipped files
-
-## Example Usage
-
-**User:** "Ingest the FastAPI repository"
-
-```bash
-~/.venvs/gitingest/bin/gitingest https://github.com/tiangolo/fastapi -o fastapi-digest.txt
-```
-
-**User:** "Create a text file of this project for Claude"
-
-```bash
-~/.venvs/gitingest/bin/gitingest . -o project-digest.txt
-```
-
-**User:** "I need to analyze a private repo"
-
-```bash
-# User must provide token
-~/.venvs/gitingest/bin/gitingest https://github.com/owner/private-repo -t ghp_xxxx -o output.txt
-```
 
 ## Tips
 
