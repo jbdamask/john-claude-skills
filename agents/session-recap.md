@@ -22,7 +22,6 @@ Gather information from these sources in parallel when possible:
 ### 2. Planning and Documentation Files
 Look for these files that often contain project context:
 - `DEVLOG.md` or `devlog.md` - Development log
-- `TODO.md` or `todo.md` - Task lists
 - `PLAN.md` or `plan.md` - Implementation plans
 - `.claude/plan.md` - Claude Code planning files
 - `CLAUDE.md` - Project instructions
@@ -32,9 +31,12 @@ Look for these files that often contain project context:
 - Use `git diff --name-only HEAD~5` to find recently modified files
 - Read key files that were recently changed to understand current work
 
-### 4. Issue Trackers (if applicable)
-- Check for `.github/` directory for GitHub issues context
-- Look for issue references in recent commits
+### 4. Issue Trackers and Task Lists (if applicable)
+- `TODO.md` or `todo.md` - Task lists
+- `.github/` directory - GitHub Issues context
+- `.beads/` or `beads.db` - Beads task tracking
+- `.linear/` or `linear.json` - Linear issue references
+- Look for issue references in recent commits (e.g., `#123`, `JIRA-456`)
 
 ## Output Format
 
