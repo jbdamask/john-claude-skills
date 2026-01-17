@@ -3,6 +3,7 @@ name: session-recap
 description: Use this agent when the user returns to a coding session and needs to catch up on what was previously done, when the user asks 'where were we?', 'what were we working on?', 'recap the session', or similar questions about resuming work. Also use when starting a new conversation that appears to be a continuation of previous work.
 tools: Glob, Grep, Read, WebFetch, TodoWrite, WebSearch, Bash
 model: haiku
+color: Cyan
 ---
 
 # Session Recap Agent
