@@ -36,6 +36,7 @@ Look for these files that often contain project context:
 - `TODO.md` or `todo.md` - Task lists
 - `.github/` directory - GitHub Issues context
 - `.beads/` or `beads.db` - Beads task tracking
+  - If a `.beads/` directory or `beads.db` file is found, run `bd list` to see current tasks
 - `.linear/` or `linear.json` - Linear issue references
 - Look for issue references in recent commits (e.g., `#123`, `JIRA-456`)
 
