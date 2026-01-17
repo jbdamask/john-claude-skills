@@ -22,6 +22,7 @@ Gather information from these sources in parallel when possible:
 ### 2. Planning and Documentation Files
 Look for these files that often contain project context:
 - `DEVLOG.md` or `devlog.md` - Development log
+- `CHANGELOG.md` or `changelog.md` - Change history
 - `PLAN.md` or `plan.md` - Implementation plans
 - `.claude/plan.md` - Claude Code planning files
 - `CLAUDE.md` - Project instructions
