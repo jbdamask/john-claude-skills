@@ -14,11 +14,29 @@ import json
 import os
 import sys
 import re
+import subprocess
 
 RESERVED_NAMES = {
     "claude-code-marketplace", "claude-code-plugins", "claude-plugins-official",
     "anthropic-marketplace", "anthropic-plugins", "agent-skills", "life-sciences"
 }
+
+def get_git_config(key: str) -> str:
+    """Get a value from git config, returns empty string if not set."""
+    try:
+        result = subprocess.run(
+            ["git", "config", "--get", key],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        return result.stdout.strip() if result.returncode == 0 else ""
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return ""
+
+def get_git_user_info() -> tuple[str, str]:
+    """Get user.name and user.email from git config."""
+    return get_git_config("user.name"), get_git_config("user.email")
 
 def validate_name(name: str) -> tuple[bool, str]:
     if not name:
@@ -151,7 +169,14 @@ jobs:
     print(f"\nNext steps:")
     print(f"  1. cd {output_path}")
     print(f"  2. Edit .claude-plugin/marketplace.json")
-    print(f"  3. git init && git add -A && git commit -m 'Initial'")
+
+    # Check if .git already exists
+    git_dir = os.path.join(output_path, ".git")
+    if os.path.isdir(git_dir):
+        print(f"  3. git add -A && git commit -m 'Initial'")
+    else:
+        print(f"  3. git init && git add -A && git commit -m 'Initial'")
+
     print(f"  4. Push to GitHub")
     print(f"  5. /plugin marketplace add owner/{name}")
 
@@ -159,20 +184,36 @@ def main():
     parser = argparse.ArgumentParser(description="Initialize a Claude Code plugin marketplace")
     parser.add_argument("name", help="Marketplace name (kebab-case)")
     parser.add_argument("--path", required=True, help="Output directory")
-    parser.add_argument("--owner-name", default="", help="Owner name")
-    parser.add_argument("--owner-email", default="", help="Owner email")
+    parser.add_argument("--owner-name", default="", help="Owner name (defaults to git config user.name)")
+    parser.add_argument("--owner-email", default="", help="Owner email (defaults to git config user.email)")
     args = parser.parse_args()
-    
+
     valid, error = validate_name(args.name)
     if not valid:
         print(f"❌ Invalid name: {error}", file=sys.stderr)
         sys.exit(1)
-    
+
     if os.path.exists(args.path) and os.listdir(args.path):
         print(f"❌ Directory '{args.path}' exists and is not empty", file=sys.stderr)
         sys.exit(1)
-    
-    create_marketplace(args.name, args.path, args.owner_name, args.owner_email)
+
+    # Use git config as fallback for owner info
+    git_name, git_email = get_git_user_info()
+    owner_name = args.owner_name or git_name
+    owner_email = args.owner_email or git_email
+
+    # Report if git config values are missing
+    missing_config = []
+    if not owner_name:
+        missing_config.append("user.name")
+    if not owner_email:
+        missing_config.append("user.email")
+
+    if missing_config:
+        print(f"⚠️  Git config missing: {', '.join(missing_config)}", file=sys.stderr)
+        print(f"   Using placeholder values. Consider setting git config or use --owner-name/--owner-email", file=sys.stderr)
+
+    create_marketplace(args.name, args.path, owner_name, owner_email)
 
 if __name__ == "__main__":
     main()

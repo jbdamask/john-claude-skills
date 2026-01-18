@@ -160,15 +160,37 @@ Add to project's `.claude/settings.json` for automatic installation:
 
 ### Creating a New Marketplace
 
+**Pre-flight checks (REQUIRED before running init script):**
+
+1. **Check git config for user identity:**
+   ```bash
+   git config --get user.name
+   git config --get user.email
+   ```
+
+2. **If either is not set, ASK THE USER for their name and email** before proceeding. Use these values with `--owner-name` and `--owner-email` flags.
+
+3. **Check if target directory already has a git repo:**
+   ```bash
+   ls -la <target-path>/.git 2>/dev/null
+   ```
+   If `.git` exists, do NOT run `git init` when setting up the repository.
+
 ```bash
-# 1. Initialize
+# 1. Initialize (script auto-detects git config for owner info)
 python scripts/init_marketplace.py my-marketplace --path ./output
+
+# Or with explicit owner info if git config is not set:
+python scripts/init_marketplace.py my-marketplace --path ./output \
+  --owner-name "Your Name" --owner-email "you@example.com"
 
 # 2. Validate
 python scripts/validate_marketplace.py ./output
 
-# 3. Push to GitHub
-cd output && git init && git add -A && git commit -m "Initial"
+# 3. Push to GitHub (skip git init if .git already exists)
+cd output
+# Only run 'git init' if there's no existing .git directory
+git add -A && git commit -m "Initial"
 # Create repo on GitHub and push
 
 # 4. Test in Claude Code
