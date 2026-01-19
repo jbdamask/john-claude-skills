@@ -91,6 +91,11 @@ Resources:
           fi
           EOF
 
+          # Install agent-deck (Claude Code session manager)
+          sudo -u ec2-user bash << 'EOF'
+          curl -fsSL https://raw.githubusercontent.com/asheshgoplani/agent-deck/main/install.sh | bash
+          EOF
+
           # Create CLAUDE.md with beads instructions in .claude directory
           sudo -u ec2-user mkdir -p /home/ec2-user/.claude
           sudo -u ec2-user tee /home/ec2-user/.claude/CLAUDE.md > /dev/null << 'CLAUDEMD'
