@@ -91,28 +91,26 @@ Resources:
           EOF
 
           # Create CLAUDE.md with beads instructions in .claude directory
-          sudo -u ec2-user bash << 'EOF'
-          mkdir -p /home/ec2-user/.claude
-          cat > /home/ec2-user/.claude/CLAUDE.md << 'CLAUDEMD'
-# Claude Instructions
+          sudo -u ec2-user mkdir -p /home/ec2-user/.claude
+          sudo -u ec2-user tee /home/ec2-user/.claude/CLAUDE.md > /dev/null << 'CLAUDEMD'
+          # Claude Instructions
 
-## Task Tracking
+          ## Task Tracking
 
-Use 'bd' for task tracking.
+          Use 'bd' for task tracking.
 
-### Beads (bd)
+          ### Beads (bd)
 
-Task management CLI for tracking work and dependencies.
+          Task management CLI for tracking work and dependencies.
 
-### Commands
+          ### Commands
 
-- `bd init` - Initialize beads in repo (use --stealth for local-only)
-- `bd ready` - Show tasks with no blockers
-- `bd create "Title" -p <priority>` - Create task (-p 0 = highest)
-- `bd dep add <child> <parent>` - Link dependencies
-- `bd show <id>` - View task details
-CLAUDEMD
-          EOF
+          - bd init - Initialize beads in repo (use --stealth for local-only)
+          - bd ready - Show tasks with no blockers
+          - bd create "Title" -p <priority> - Create task (-p 0 = highest)
+          - bd dep add <child> <parent> - Link dependencies
+          - bd show <id> - View task details
+          CLAUDEMD
 
           # Signal completion
           echo "Installation complete" > /home/ec2-user/setup-complete.txt
