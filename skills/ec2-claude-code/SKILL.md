@@ -86,7 +86,7 @@ ssh -o StrictHostKeyChecking=no -i ${KEY_NAME}.pem ec2-user@<PUBLIC_IP> \
 Give user the SSH command and note that:
 - `claude` is available at `~/.local/bin/claude`
 - `bd` (beads) is available for task tracking
-- A CLAUDE.md file with beads instructions is in `/home/ec2-user`
+- A CLAUDE.md file with beads instructions is in `/home/ec2-user/.claude`
 
 ## Optional: GitHub SSH Access
 
@@ -127,4 +127,4 @@ Creates:
 - EC2 instance (Amazon Linux 2023 via SSM parameter, 30GB gp3)
 - Security group (SSH on port 22)
 - User data installs: dnf update, git, tmux, Claude Code, beads (bd)
-- CLAUDE.md with beads task tracking instructions in /home/ec2-user
+- CLAUDE.md with beads task tracking instructions in /home/ec2-user/.claude
