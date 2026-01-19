@@ -19,6 +19,7 @@ Provision a ready-to-use AWS EC2 instance with Claude Code, tmux, git, and beads
 Ask user for:
 - **AWS Profile** (required): Which AWS CLI profile to use
 - **Key Pair** (optional): Use existing or create new
+- **GitHub Repo** (optional): URL to clone (e.g., https://github.com/user/repo). If provided, beads will be initialized in the repo.
 
 ### 2. Set Up Variables
 
@@ -55,7 +56,8 @@ aws cloudformation create-stack \
   --parameters \
     ParameterKey=KeyPairName,ParameterValue=$KEY_NAME \
     ParameterKey=InstanceType,ParameterValue=t3.medium \
-    ParameterKey=SSHLocation,ParameterValue=0.0.0.0/0
+    ParameterKey=SSHLocation,ParameterValue=0.0.0.0/0 \
+    ParameterKey=GitHubRepo,ParameterValue=$GITHUB_REPO
 ```
 
 ### 5. Wait and Get Outputs

@@ -24,6 +24,11 @@ Parameters:
     AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
     ConstraintDescription: Must be a valid CIDR range like x.x.x.x/x
 
+  GitHubRepo:
+    Type: String
+    Default: ''
+    Description: Optional GitHub repo URL to clone (e.g., https://github.com/user/repo)
+
 Resources:
   EC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -79,15 +84,11 @@ Resources:
           # Install beads (bd) task tracking CLI
           curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
 
-          # Add beads to ec2-user's PATH and initialize
+          # Add beads to ec2-user's PATH
           sudo -u ec2-user bash << 'EOF'
           if ! grep -q '.beads/bin' ~/.bashrc; then
             echo 'export PATH="$HOME/.beads/bin:$PATH"' >> ~/.bashrc
           fi
-          # Initialize beads
-          export PATH="$HOME/.beads/bin:$PATH"
-          cd /home/ec2-user
-          bd init --stealth
           EOF
 
           # Create CLAUDE.md with beads instructions in .claude directory
@@ -111,6 +112,14 @@ Resources:
           - bd dep add <child> <parent> - Link dependencies
           - bd show <id> - View task details
           CLAUDEMD
+
+          # Clone GitHub repo and initialize beads if provided
+          GITHUB_REPO="${GitHubRepo}"
+          if [ -n "$GITHUB_REPO" ]; then
+            REPO_NAME=$(basename "$GITHUB_REPO" .git)
+            sudo -u ec2-user git clone "$GITHUB_REPO" /home/ec2-user/$REPO_NAME
+            sudo -u ec2-user bash -c "cd /home/ec2-user/$REPO_NAME && bd init"
+          fi
 
           # Signal completion
           echo "Installation complete" > /home/ec2-user/setup-complete.txt
