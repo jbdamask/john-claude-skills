@@ -20,6 +20,7 @@ Ask user for:
 - **AWS Profile** (required): Which AWS CLI profile to use
 - **Key Pair** (optional): Use existing or create new
 - **GitHub Repo** (optional): URL to clone (e.g., https://github.com/user/repo). If provided, beads will be initialized in the repo.
+- **GitHub SSH Key** (optional): Path to local SSH private key for GitHub authentication. Without this, git push/pull/fetch won't work on the EC2 - only local git operations will be available.
 
 ### 2. Set Up Variables
 
@@ -90,28 +91,45 @@ Give user the SSH command and note that:
 - `bd` (beads) is available for task tracking
 - A CLAUDE.md file with beads instructions is in `/home/ec2-user/.claude`
 
-## Optional: GitHub SSH Access
+### 8. Set Up GitHub SSH Access (if requested)
 
-If user needs private repo access:
+**Why this is needed:** Without SSH key authentication, git push/pull/fetch to GitHub won't work on the EC2. The instance can only perform local git operations (commit, branch, etc.) without this setup.
 
-1. Copy their SSH key:
+If user provided an SSH key path:
+
+1. Copy their SSH key to the EC2:
    ```bash
-   scp -i ${KEY_NAME}.pem <LOCAL_SSH_KEY> ec2-user@<IP>:~/.ssh/
+   scp -i ${KEY_NAME}.pem $GITHUB_SSH_KEY ec2-user@<PUBLIC_IP>:~/.ssh/
    ```
 
-2. Configure SSH on instance:
+2. Configure SSH and update remote URL:
    ```bash
-   ssh -i ${KEY_NAME}.pem ec2-user@<IP> 'chmod 600 ~/.ssh/<KEY> && cat >> ~/.ssh/config << EOF
+   SSH_KEY_NAME=$(basename $GITHUB_SSH_KEY)
+   ssh -i ${KEY_NAME}.pem ec2-user@<PUBLIC_IP> "
+     chmod 600 ~/.ssh/$SSH_KEY_NAME
+     cat >> ~/.ssh/config << EOF
    Host github.com
        HostName github.com
        User git
-       IdentityFile ~/.ssh/<KEY>
+       IdentityFile ~/.ssh/$SSH_KEY_NAME
        IdentitiesOnly yes
    EOF
-   chmod 600 ~/.ssh/config'
+     chmod 600 ~/.ssh/config
+   "
    ```
 
-3. Test: `ssh -T git@github.com`
+3. If a GitHub repo was cloned, update the remote URL to use SSH:
+   ```bash
+   ssh -i ${KEY_NAME}.pem ec2-user@<PUBLIC_IP> "
+     cd ~/$REPO_NAME
+     git remote set-url origin git@github.com:<owner>/<repo>.git
+   "
+   ```
+
+4. Verify GitHub authentication:
+   ```bash
+   ssh -i ${KEY_NAME}.pem ec2-user@<PUBLIC_IP> "ssh -o StrictHostKeyChecking=no -T git@github.com"
+   ```
 
 ## Cleanup Command
 
