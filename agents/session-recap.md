@@ -41,6 +41,13 @@ Look for these files that often contain project context:
 - `.linear/` or `linear.json` - Linear issue references
 - Look for issue references in recent commits (e.g., `#123`, `JIRA-456`)
 
+### 5. Chat history
+- All Claude Code chats are stored in subdirectories of ~/.claude/projects.
+- Project subdirectories have the same name as the project path itself but with slashes replaced by hyphens. For example, /Users/barry/project1 would be -Users-barry-project1.
+- Chat history is stored in JSONL files within the project's subdirectories. 
+- Chats are time-stamped, so you can use time as a map to find things. 
+- Chat session JSON-L files are sorted chronologically, so you can tail the last part of the JSON-L file to get back up to speed. 
+
 ## Output Format
 
 Provide a concise summary with:
