@@ -1,11 +1,11 @@
 ---
 name: ec2-claude-code
-description: Create an Amazon Linux 2023 EC2 instance with Claude Code, tmux, git, beads (bd) task tracking, and agent-deck session manager pre-installed. Use when user wants to spin up a cloud development environment, create an EC2 for Claude Code, launch a remote Claude Code instance, or set up a dev box on AWS. Supports multiple instances per account with unique naming.
+description: Create an Ubuntu 24.04 LTS EC2 instance with Claude Code, Playwright (headless browser testing), tmux, git, beads (bd) task tracking, and agent-deck session manager pre-installed. Use when user wants to spin up a cloud development environment, create an EC2 for Claude Code, launch a remote Claude Code instance, or set up a dev box on AWS. Supports multiple instances per account with unique naming.
 ---
 
 # EC2 with Claude Code
 
-Provision a ready-to-use AWS EC2 instance with Claude Code, tmux, git, beads (bd) task tracking, and agent-deck session manager.
+Provision a ready-to-use AWS EC2 instance with Claude Code, Playwright (headless Chromium), tmux, git, beads (bd) task tracking, and agent-deck session manager.
 
 ## Prerequisites
 
@@ -77,11 +77,11 @@ aws cloudformation describe-stacks \
 
 ### 6. Verify Installation
 
-Wait ~60 seconds for user data to complete, then verify:
+Wait ~90 seconds for user data to complete (Playwright installation takes longer), then verify:
 
 ```bash
-ssh -o StrictHostKeyChecking=no -i ${KEY_NAME}.pem ec2-user@<PUBLIC_IP> \
-  "cat ~/setup-complete.txt && git --version && tmux -V && ~/.local/bin/claude --version && bd --version"
+ssh -o StrictHostKeyChecking=no -i ${KEY_NAME}.pem ubuntu@<PUBLIC_IP> \
+  "cat ~/setup-complete.txt && git --version && tmux -V && ~/.local/bin/claude --version && bd --version && npx playwright --version"
 ```
 
 ### 7. Provide Connection Info
@@ -90,7 +90,8 @@ Give user the SSH command and note that:
 - `claude` is available at `~/.local/bin/claude`
 - `bd` (beads) is available for task tracking
 - `agent-deck` is available for managing Claude Code sessions
-- A CLAUDE.md file with beads instructions is in `/home/ec2-user/.claude`
+- Playwright with Chromium is pre-installed for headless browser testing
+- A CLAUDE.md file with instructions is in `/home/ubuntu/.claude`
 
 ### 8. Set Up GitHub SSH Access (if requested)
 
@@ -100,13 +101,13 @@ If user provided an SSH key path:
 
 1. Copy their SSH key to the EC2:
    ```bash
-   scp -i ${KEY_NAME}.pem $GITHUB_SSH_KEY ec2-user@<PUBLIC_IP>:~/.ssh/
+   scp -i ${KEY_NAME}.pem $GITHUB_SSH_KEY ubuntu@<PUBLIC_IP>:~/.ssh/
    ```
 
 2. Configure SSH and update remote URL:
    ```bash
    SSH_KEY_NAME=$(basename $GITHUB_SSH_KEY)
-   ssh -i ${KEY_NAME}.pem ec2-user@<PUBLIC_IP> "
+   ssh -i ${KEY_NAME}.pem ubuntu@<PUBLIC_IP> "
      chmod 600 ~/.ssh/$SSH_KEY_NAME
      cat >> ~/.ssh/config << EOF
    Host github.com
@@ -121,7 +122,7 @@ If user provided an SSH key path:
 
 3. If a GitHub repo was cloned, update the remote URL to use SSH:
    ```bash
-   ssh -i ${KEY_NAME}.pem ec2-user@<PUBLIC_IP> "
+   ssh -i ${KEY_NAME}.pem ubuntu@<PUBLIC_IP> "
      cd ~/$REPO_NAME
      git remote set-url origin git@github.com:<owner>/<repo>.git
    "
@@ -129,7 +130,7 @@ If user provided an SSH key path:
 
 4. Verify GitHub authentication:
    ```bash
-   ssh -i ${KEY_NAME}.pem ec2-user@<PUBLIC_IP> "ssh -o StrictHostKeyChecking=no -T git@github.com"
+   ssh -i ${KEY_NAME}.pem ubuntu@<PUBLIC_IP> "ssh -o StrictHostKeyChecking=no -T git@github.com"
    ```
 
 ## Cleanup Command
@@ -145,7 +146,7 @@ rm ${KEY_NAME}.pem
 Located at: `assets/cloudformation-ec2-claude-code.yaml`
 
 Creates:
-- EC2 instance (Amazon Linux 2023 via SSM parameter, 30GB gp3)
+- EC2 instance (Ubuntu 24.04 LTS via SSM parameter, 30GB gp3)
 - Security group (SSH on port 22)
-- User data installs: dnf update, git, tmux, Claude Code, beads (bd), agent-deck
-- CLAUDE.md with beads task tracking instructions in /home/ec2-user/.claude
+- User data installs: apt update, Node.js 20 LTS, git, tmux, Claude Code, Playwright with Chromium, beads (bd), agent-deck
+- CLAUDE.md with task tracking and browser testing instructions in /home/ubuntu/.claude

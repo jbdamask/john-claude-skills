@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: EC2 instance with Amazon Linux 2023, Claude Code, tmux, and git
+Description: EC2 instance with Ubuntu 24.04 LTS, Claude Code, Playwright, tmux, and git
 
 Parameters:
   KeyPairName:
@@ -48,13 +48,13 @@ Resources:
   EC2Instance:
     Type: AWS::EC2::Instance
     Properties:
-      ImageId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}'
+      ImageId: '{{resolve:ssm:/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id}}'
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyPairName
       SecurityGroupIds:
         - !GetAtt EC2SecurityGroup.GroupId
       BlockDeviceMappings:
-        - DeviceName: /dev/xvda
+        - DeviceName: /dev/sda1
           Ebs:
             VolumeSize: 30
             VolumeType: gp3
@@ -65,14 +65,19 @@ Resources:
           set -ex
 
           # Update system packages
-          dnf update -y
+          apt-get update
+          apt-get upgrade -y
 
           # Install git and tmux
-          dnf install -y git tmux
+          apt-get install -y git tmux curl unzip
 
-          # Install Claude Code for ec2-user
-          sudo -u ec2-user bash << 'EOF'
-          cd /home/ec2-user
+          # Install Node.js 20 LTS (required for Playwright)
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt-get install -y nodejs
+
+          # Install Claude Code for ubuntu user
+          sudo -u ubuntu bash << 'EOF'
+          cd /home/ubuntu
           curl -fsSL https://claude.ai/install.sh | bash
 
           # Add claude to PATH in .bashrc if not already there
@@ -81,24 +86,34 @@ Resources:
           fi
           EOF
 
+          # Install Playwright with Chromium for ubuntu user
+          sudo -u ubuntu bash << 'EOF'
+          cd /home/ubuntu
+          npm install -D @playwright/test@latest
+          npx playwright install chromium
+          EOF
+
+          # Install Playwright system dependencies
+          npx --yes playwright install-deps chromium
+
           # Install beads (bd) task tracking CLI
           curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
 
-          # Add beads to ec2-user's PATH
-          sudo -u ec2-user bash << 'EOF'
+          # Add beads to ubuntu user's PATH
+          sudo -u ubuntu bash << 'EOF'
           if ! grep -q '.beads/bin' ~/.bashrc; then
             echo 'export PATH="$HOME/.beads/bin:$PATH"' >> ~/.bashrc
           fi
           EOF
 
           # Install agent-deck (Claude Code session manager)
-          sudo -u ec2-user bash << 'EOF'
+          sudo -u ubuntu bash << 'EOF'
           curl -fsSL https://raw.githubusercontent.com/asheshgoplani/agent-deck/main/install.sh | bash
           EOF
 
-          # Create CLAUDE.md with beads instructions in .claude directory
-          sudo -u ec2-user mkdir -p /home/ec2-user/.claude
-          sudo -u ec2-user tee /home/ec2-user/.claude/CLAUDE.md > /dev/null << 'CLAUDEMD'
+          # Create CLAUDE.md with instructions in .claude directory
+          sudo -u ubuntu mkdir -p /home/ubuntu/.claude
+          sudo -u ubuntu tee /home/ubuntu/.claude/CLAUDE.md > /dev/null << 'CLAUDEMD'
           # Claude Instructions
 
           ## Task Tracking
@@ -116,19 +131,38 @@ Resources:
           - bd create "Title" -p <priority> - Create task (-p 0 = highest)
           - bd dep add <child> <parent> - Link dependencies
           - bd show <id> - View task details
+
+          ## Browser Testing
+
+          Use Playwright for headless browser testing. Chromium is pre-installed.
+
+          ### Quick Test Script
+
+          Create a test file and run with: npx playwright test
+
+          ### Example Usage
+
+          ```javascript
+          const { chromium } = require('@playwright/test');
+          const browser = await chromium.launch();
+          const page = await browser.newPage();
+          await page.goto('http://localhost:3000');
+          await page.screenshot({ path: 'screenshot.png' });
+          await browser.close();
+          ```
           CLAUDEMD
 
           # Clone GitHub repo and initialize beads if provided
           GITHUB_REPO="${GitHubRepo}"
           if [ -n "$GITHUB_REPO" ]; then
             REPO_NAME=$(basename "$GITHUB_REPO" .git)
-            sudo -u ec2-user git clone "$GITHUB_REPO" /home/ec2-user/$REPO_NAME
-            sudo -u ec2-user bash -c "cd /home/ec2-user/$REPO_NAME && bd init"
+            sudo -u ubuntu git clone "$GITHUB_REPO" /home/ubuntu/$REPO_NAME
+            sudo -u ubuntu bash -c "cd /home/ubuntu/$REPO_NAME && bd init"
           fi
 
           # Signal completion
-          echo "Installation complete" > /home/ec2-user/setup-complete.txt
-          chown ec2-user:ec2-user /home/ec2-user/setup-complete.txt
+          echo "Installation complete" > /home/ubuntu/setup-complete.txt
+          chown ubuntu:ubuntu /home/ubuntu/setup-complete.txt
 
       Tags:
         - Key: Name
@@ -149,4 +183,4 @@ Outputs:
 
   SSHCommand:
     Description: SSH command to connect to the instance
-    Value: !Sub 'ssh -i <your-key.pem> ec2-user@${EC2Instance.PublicIp}'
+    Value: !Sub 'ssh -i <your-key.pem> ubuntu@${EC2Instance.PublicIp}'
