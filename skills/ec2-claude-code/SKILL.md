@@ -1,11 +1,11 @@
 ---
 name: ec2-claude-code
-description: Create an Amazon Linux 2023 EC2 instance with Claude Code, tmux, and git pre-installed. Use when user wants to spin up a cloud development environment, create an EC2 for Claude Code, launch a remote Claude Code instance, or set up a dev box on AWS. Supports multiple instances per account with unique naming.
+description: Create an Amazon Linux 2023 EC2 instance with Claude Code, tmux, git, and beads (bd) task tracking pre-installed. Use when user wants to spin up a cloud development environment, create an EC2 for Claude Code, launch a remote Claude Code instance, or set up a dev box on AWS. Supports multiple instances per account with unique naming.
 ---
 
 # EC2 with Claude Code
 
-Provision a ready-to-use AWS EC2 instance with Claude Code, tmux, and git.
+Provision a ready-to-use AWS EC2 instance with Claude Code, tmux, git, and beads (bd) task tracking.
 
 ## Prerequisites
 
@@ -78,12 +78,15 @@ Wait ~60 seconds for user data to complete, then verify:
 
 ```bash
 ssh -o StrictHostKeyChecking=no -i ${KEY_NAME}.pem ec2-user@<PUBLIC_IP> \
-  "cat ~/setup-complete.txt && git --version && tmux -V && ~/.local/bin/claude --version"
+  "cat ~/setup-complete.txt && git --version && tmux -V && ~/.local/bin/claude --version && bd --version"
 ```
 
 ### 7. Provide Connection Info
 
-Give user the SSH command and note that `claude` is available at `~/.local/bin/claude`.
+Give user the SSH command and note that:
+- `claude` is available at `~/.local/bin/claude`
+- `bd` (beads) is available for task tracking
+- A CLAUDE.md file with beads instructions is in `/home/ec2-user`
 
 ## Optional: GitHub SSH Access
 
@@ -123,4 +126,5 @@ Located at: `assets/cloudformation-ec2-claude-code.yaml`
 Creates:
 - EC2 instance (Amazon Linux 2023 via SSM parameter, 30GB gp3)
 - Security group (SSH on port 22)
-- User data installs: dnf update, git, tmux, Claude Code
+- User data installs: dnf update, git, tmux, Claude Code, beads (bd)
+- CLAUDE.md with beads task tracking instructions in /home/ec2-user

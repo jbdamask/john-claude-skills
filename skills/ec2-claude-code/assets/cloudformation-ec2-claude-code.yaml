@@ -76,6 +76,42 @@ Resources:
           fi
           EOF
 
+          # Install beads (bd) task tracking CLI
+          curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
+
+          # Add beads to ec2-user's PATH and initialize
+          sudo -u ec2-user bash << 'EOF'
+          if ! grep -q '.beads/bin' ~/.bashrc; then
+            echo 'export PATH="$HOME/.beads/bin:$PATH"' >> ~/.bashrc
+          fi
+          # Initialize beads
+          export PATH="$HOME/.beads/bin:$PATH"
+          cd /home/ec2-user
+          bd init --stealth
+          EOF
+
+          # Create CLAUDE.md with beads instructions
+          cat > /home/ec2-user/CLAUDE.md << 'EOF'
+          # Claude Instructions
+
+          ## Task Tracking
+
+          Use 'bd' for task tracking.
+
+          ### Beads (bd)
+
+          Task management CLI for tracking work and dependencies.
+
+          ### Commands
+
+          - `bd init` - Initialize beads in repo (use --stealth for local-only)
+          - `bd ready` - Show tasks with no blockers
+          - `bd create "Title" -p <priority>` - Create task (-p 0 = highest)
+          - `bd dep add <child> <parent>` - Link dependencies
+          - `bd show <id>` - View task details
+          EOF
+          chown ec2-user:ec2-user /home/ec2-user/CLAUDE.md
+
           # Signal completion
           echo "Installation complete" > /home/ec2-user/setup-complete.txt
           chown ec2-user:ec2-user /home/ec2-user/setup-complete.txt
