@@ -10,6 +10,7 @@ Provision a ready-to-use AWS EC2 instance with Claude Code, Playwright (headless
 ## Prerequisites
 
 - AWS CLI configured
+- GitHub CLI (`gh`) authenticated with repo access
 - User must provide an AWS profile with EC2 permissions
 
 ## Workflow
@@ -19,8 +20,7 @@ Provision a ready-to-use AWS EC2 instance with Claude Code, Playwright (headless
 Ask user for:
 - **AWS Profile** (required): Which AWS CLI profile to use
 - **Key Pair** (optional): Use existing or create new
-- **GitHub Repo** (optional): URL to clone (e.g., https://github.com/user/repo). If provided, beads will be initialized in the repo.
-- **GitHub SSH Key** (optional): Path to local SSH private key for GitHub authentication. Without this, git push/pull/fetch won't work on the EC2 - only local git operations will be available.
+- **GitHub Repo** (required): URL to clone (e.g., https://github.com/user/repo). A deploy key will be created for this repo, giving the EC2 write access to only this specific repository.
 
 ### 2. Set Up Variables
 
@@ -30,6 +30,17 @@ Generate unique names using profile and timestamp to allow multiple instances pe
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 STACK_NAME="claude-code-${AWS_PROFILE}-${TIMESTAMP}"
 KEY_NAME="claude-code-key-${AWS_PROFILE}-${TIMESTAMP}"
+DEPLOY_KEY_NAME="deploy-key-${STACK_NAME}"
+DEPLOY_KEY_TITLE="EC2-${STACK_NAME}"
+```
+
+Parse the GitHub repo URL to extract owner and repo name:
+
+```bash
+# Extract owner/repo from URL (handles both https://github.com/owner/repo and git@github.com:owner/repo.git)
+REPO_FULL=$(echo "$GITHUB_REPO" | sed -E 's|https://github.com/||; s|git@github.com:||; s|\.git$||')
+REPO_OWNER=$(echo "$REPO_FULL" | cut -d'/' -f1)
+REPO_NAME=$(echo "$REPO_FULL" | cut -d'/' -f2)
 ```
 
 ### 3. Create Key Pair (if needed)
@@ -43,7 +54,25 @@ aws ec2 create-key-pair \
 chmod 400 ${KEY_NAME}.pem
 ```
 
-### 4. Copy and Deploy CloudFormation
+### 4. Generate Deploy Key and Add to GitHub
+
+Generate a new SSH key pair specifically for this EC2/repo combination:
+
+```bash
+ssh-keygen -t ed25519 -f ${DEPLOY_KEY_NAME} -N "" -C "${DEPLOY_KEY_TITLE}"
+chmod 400 ${DEPLOY_KEY_NAME}
+```
+
+Add the public key as a deploy key to the GitHub repo with write access:
+
+```bash
+gh repo deploy-key add ${DEPLOY_KEY_NAME}.pub \
+  --repo ${REPO_OWNER}/${REPO_NAME} \
+  --title "${DEPLOY_KEY_TITLE}" \
+  --allow-write
+```
+
+### 5. Copy and Deploy CloudFormation
 
 Copy template from skill assets to working directory, then deploy:
 
@@ -61,7 +90,7 @@ aws cloudformation create-stack \
     ParameterKey=GitHubRepo,ParameterValue=$GITHUB_REPO
 ```
 
-### 5. Wait and Get Outputs
+### 6. Wait and Get Outputs
 
 ```bash
 aws cloudformation wait stack-create-complete \
@@ -75,7 +104,7 @@ aws cloudformation describe-stacks \
   --output table
 ```
 
-### 6. Verify Installation
+### 7. Verify Installation
 
 Wait ~90 seconds for user data to complete (Playwright installation takes longer), then verify:
 
@@ -84,7 +113,7 @@ ssh -o StrictHostKeyChecking=no -i ${KEY_NAME}.pem ubuntu@<PUBLIC_IP> \
   "cat ~/setup-complete.txt && git --version && tmux -V && ~/.local/bin/claude --version && bd --version && npx playwright --version"
 ```
 
-### 7. Provide Connection Info
+### 8. Provide Connection Info
 
 Give user the SSH command and note that:
 - `claude` is available at `~/.local/bin/claude`
@@ -93,38 +122,35 @@ Give user the SSH command and note that:
 - Playwright with Chromium is pre-installed for headless browser testing
 - A CLAUDE.md file with instructions is in `/home/ubuntu/.claude`
 
-### 8. Set Up GitHub SSH Access (if requested)
+### 9. Set Up GitHub SSH Access with Deploy Key
 
-**Why this is needed:** Without SSH key authentication, git push/pull/fetch to GitHub won't work on the EC2. The instance can only perform local git operations (commit, branch, etc.) without this setup.
+Copy the deploy key to the EC2 and configure SSH for GitHub access:
 
-If user provided an SSH key path:
-
-1. Copy their SSH key to the EC2:
+1. Copy the deploy key to the EC2:
    ```bash
-   scp -i ${KEY_NAME}.pem $GITHUB_SSH_KEY ubuntu@<PUBLIC_IP>:~/.ssh/
+   scp -i ${KEY_NAME}.pem ${DEPLOY_KEY_NAME} ubuntu@<PUBLIC_IP>:~/.ssh/
    ```
 
-2. Configure SSH and update remote URL:
+2. Configure SSH to use the deploy key for GitHub:
    ```bash
-   SSH_KEY_NAME=$(basename $GITHUB_SSH_KEY)
    ssh -i ${KEY_NAME}.pem ubuntu@<PUBLIC_IP> "
-     chmod 600 ~/.ssh/$SSH_KEY_NAME
+     chmod 600 ~/.ssh/${DEPLOY_KEY_NAME}
      cat >> ~/.ssh/config << EOF
    Host github.com
        HostName github.com
        User git
-       IdentityFile ~/.ssh/$SSH_KEY_NAME
+       IdentityFile ~/.ssh/${DEPLOY_KEY_NAME}
        IdentitiesOnly yes
    EOF
      chmod 600 ~/.ssh/config
    "
    ```
 
-3. If a GitHub repo was cloned, update the remote URL to use SSH:
+3. Update the cloned repo's remote URL to use SSH:
    ```bash
    ssh -i ${KEY_NAME}.pem ubuntu@<PUBLIC_IP> "
-     cd ~/$REPO_NAME
-     git remote set-url origin git@github.com:<owner>/<repo>.git
+     cd ~/${REPO_NAME}
+     git remote set-url origin git@github.com:${REPO_OWNER}/${REPO_NAME}.git
    "
    ```
 
@@ -135,10 +161,25 @@ If user provided an SSH key path:
 
 ## Cleanup Command
 
+**Important:** The cleanup removes the deploy key from GitHub by looking up its ID using the unique title. This ensures only the specific key for this EC2 instance is removed.
+
 ```bash
+# Remove the deploy key from GitHub (lookup by title to get the key ID)
+DEPLOY_KEY_ID=$(gh repo deploy-key list --repo ${REPO_OWNER}/${REPO_NAME} --json id,title \
+  -q ".[] | select(.title == \"${DEPLOY_KEY_TITLE}\") | .id")
+if [ -n "$DEPLOY_KEY_ID" ]; then
+  gh repo deploy-key delete --repo ${REPO_OWNER}/${REPO_NAME} $DEPLOY_KEY_ID
+  echo "Removed deploy key '${DEPLOY_KEY_TITLE}' from ${REPO_OWNER}/${REPO_NAME}"
+else
+  echo "Warning: Deploy key '${DEPLOY_KEY_TITLE}' not found in ${REPO_OWNER}/${REPO_NAME}"
+fi
+
+# Delete AWS resources
 aws cloudformation delete-stack --profile $AWS_PROFILE --stack-name $STACK_NAME
 aws ec2 delete-key-pair --profile $AWS_PROFILE --key-name $KEY_NAME
-rm ${KEY_NAME}.pem
+
+# Remove local key files
+rm -f ${KEY_NAME}.pem ${DEPLOY_KEY_NAME} ${DEPLOY_KEY_NAME}.pub
 ```
 
 ## CloudFormation Template
