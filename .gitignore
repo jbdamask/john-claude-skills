@@ -4,3 +4,5 @@ __pycache__/
 .vscode/
 .claude
 *.skill
+claude-code-key*
+deploy-key*
