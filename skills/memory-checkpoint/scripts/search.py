@@ -21,10 +21,11 @@ if not VENV_PYTHON.exists() and SETUP_SCRIPT.exists():
 if VENV_PYTHON.exists() and sys.executable != str(VENV_PYTHON):
     os.execv(str(VENV_PYTHON), [str(VENV_PYTHON)] + sys.argv)
 
-def get_project_checkpoint_dir() -> Path:
+def get_project_checkpoint_dir(project_dir: str | None = None) -> Path:
     """Get the checkpoint directory for the current project."""
-    cwd = Path.cwd()
-    return cwd / ".claude" / "checkpoints"
+    if project_dir:
+        return Path(project_dir) / ".claude" / "checkpoints"
+    return Path.cwd() / ".claude" / "checkpoints"
 
 def load_index(checkpoint_dir: Path) -> dict:
     """Load the checkpoint index."""
@@ -56,9 +57,9 @@ def generate_embedding(text: str) -> list[float]:
         print("Error: fastembed not installed. Run: pip install fastembed", file=sys.stderr)
         sys.exit(1)
 
-def search_checkpoints(query: str, top_n: int = 5) -> list[dict]:
+def search_checkpoints(query: str, top_n: int = 5, project_dir: str | None = None) -> list[dict]:
     """Search checkpoints by semantic similarity."""
-    checkpoint_dir = get_project_checkpoint_dir()
+    checkpoint_dir = get_project_checkpoint_dir(project_dir)
     index = load_index(checkpoint_dir)
 
     if not index["checkpoints"]:
@@ -85,10 +86,10 @@ def search_checkpoints(query: str, top_n: int = 5) -> list[dict]:
     results.sort(key=lambda x: x["score"], reverse=True)
     return results[:top_n]
 
-def read_checkpoint_content(filename: str) -> str:
+def read_checkpoint_content(filename: str, project_dir: str | None = None) -> str:
     """Read the full content of a checkpoint file."""
-    checkpoint_dir = get_project_checkpoint_dir()
-    filepath = checkpoint_dir / "checkpoints" / filename
+    checkpoint_dir = get_project_checkpoint_dir(project_dir)
+    filepath = checkpoint_dir / filename
     if filepath.exists():
         with open(filepath) as f:
             return f.read()
@@ -99,6 +100,7 @@ def main():
     parser.add_argument("query", nargs="?", help="Search query")
     parser.add_argument("-n", "--top", type=int, default=5, help="Number of results (default: 5)")
     parser.add_argument("--full", action="store_true", help="Show full checkpoint content for top result")
+    parser.add_argument("--project-dir", type=str, help="Project root directory (defaults to cwd)")
     args = parser.parse_args()
 
     if not args.query:
@@ -109,7 +111,7 @@ def main():
         print("Error: No search query provided", file=sys.stderr)
         sys.exit(1)
 
-    results = search_checkpoints(args.query, args.top)
+    results = search_checkpoints(args.query, args.top, args.project_dir)
 
     if not results:
         print("No checkpoints found.")
@@ -118,7 +120,7 @@ def main():
     output = {"results": results}
 
     if args.full and results:
-        output["top_result_content"] = read_checkpoint_content(results[0]["filename"])
+        output["top_result_content"] = read_checkpoint_content(results[0]["filename"], args.project_dir)
 
     print(json.dumps(output, indent=2))
 

@@ -20,10 +20,11 @@ if not VENV_PYTHON.exists() and SETUP_SCRIPT.exists():
 if VENV_PYTHON.exists() and sys.executable != str(VENV_PYTHON):
     os.execv(str(VENV_PYTHON), [str(VENV_PYTHON)] + sys.argv)
 
-def get_project_checkpoint_dir() -> Path:
+def get_project_checkpoint_dir(project_dir: str | None = None) -> Path:
     """Get the checkpoint directory for the current project."""
-    cwd = Path.cwd()
-    return cwd / ".claude" / "checkpoints"
+    if project_dir:
+        return Path(project_dir) / ".claude" / "checkpoints"
+    return Path.cwd() / ".claude" / "checkpoints"
 
 def load_index(checkpoint_dir: Path) -> dict:
     """Load the checkpoint index."""
@@ -33,9 +34,9 @@ def load_index(checkpoint_dir: Path) -> dict:
     with open(index_path) as f:
         return json.load(f)
 
-def list_checkpoints(limit: int = 10, status_filter: str | None = None) -> list[dict]:
+def list_checkpoints(limit: int = 10, status_filter: str | None = None, project_dir: str | None = None) -> list[dict]:
     """List recent checkpoints."""
-    checkpoint_dir = get_project_checkpoint_dir()
+    checkpoint_dir = get_project_checkpoint_dir(project_dir)
     index = load_index(checkpoint_dir)
 
     checkpoints = index.get("checkpoints", [])
@@ -59,10 +60,10 @@ def list_checkpoints(limit: int = 10, status_filter: str | None = None) -> list[
         })
     return results
 
-def read_checkpoint_content(filename: str) -> str:
+def read_checkpoint_content(filename: str, project_dir: str | None = None) -> str:
     """Read the full content of a checkpoint file."""
-    checkpoint_dir = get_project_checkpoint_dir()
-    filepath = checkpoint_dir / "checkpoints" / filename
+    checkpoint_dir = get_project_checkpoint_dir(project_dir)
+    filepath = checkpoint_dir / filename
     if filepath.exists():
         with open(filepath) as f:
             return f.read()
@@ -73,9 +74,10 @@ def main():
     parser.add_argument("-n", "--limit", type=int, default=10, help="Number of checkpoints to list (default: 10)")
     parser.add_argument("--status", type=str, help="Filter by status (IN_PROGRESS, BLOCKED, DECISION_NEEDED)")
     parser.add_argument("--latest", action="store_true", help="Show full content of most recent checkpoint")
+    parser.add_argument("--project-dir", type=str, help="Project root directory (defaults to cwd)")
     args = parser.parse_args()
 
-    checkpoints = list_checkpoints(args.limit, args.status)
+    checkpoints = list_checkpoints(args.limit, args.status, args.project_dir)
 
     if not checkpoints:
         print("No checkpoints found.")
@@ -84,7 +86,7 @@ def main():
     output = {"checkpoints": checkpoints, "total": len(checkpoints)}
 
     if args.latest and checkpoints:
-        output["latest_content"] = read_checkpoint_content(checkpoints[0]["filename"])
+        output["latest_content"] = read_checkpoint_content(checkpoints[0]["filename"], args.project_dir)
 
     print(json.dumps(output, indent=2))
 

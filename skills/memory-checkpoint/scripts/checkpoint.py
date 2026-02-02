@@ -21,13 +21,14 @@ if not VENV_PYTHON.exists() and SETUP_SCRIPT.exists():
 if VENV_PYTHON.exists() and sys.executable != str(VENV_PYTHON):
     os.execv(str(VENV_PYTHON), [str(VENV_PYTHON)] + sys.argv)
 
-def get_project_checkpoint_dir() -> Path:
+def get_project_checkpoint_dir(project_dir: str | None = None) -> Path:
     """Get the checkpoint directory for the current project."""
-    # Default to current directory's .claude/checkpoints
-    cwd = Path.cwd()
-    checkpoint_dir = cwd / ".claude" / "checkpoints"
+    if project_dir:
+        checkpoint_dir = Path(project_dir) / ".claude" / "checkpoints"
+    else:
+        checkpoint_dir = Path.cwd() / ".claude" / "checkpoints"
+
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
-    (checkpoint_dir / "checkpoints").mkdir(exist_ok=True)
     return checkpoint_dir
 
 def load_index(checkpoint_dir: Path) -> dict:
@@ -55,14 +56,14 @@ def generate_embedding(text: str) -> list[float]:
         print("Warning: fastembed not installed. Run: pip install fastembed", file=sys.stderr)
         return []
 
-def create_checkpoint(content: str, auto: bool = False) -> dict:
+def create_checkpoint(content: str, auto: bool = False, project_dir: str | None = None) -> dict:
     """Create a checkpoint file and add to index."""
-    checkpoint_dir = get_project_checkpoint_dir()
+    checkpoint_dir = get_project_checkpoint_dir(project_dir)
 
     # Generate timestamp
     timestamp = datetime.now()
     filename = timestamp.strftime("%Y-%m-%dT%H-%M-%S") + ".md"
-    filepath = checkpoint_dir / "checkpoints" / filename
+    filepath = checkpoint_dir / filename
 
     # Write checkpoint content
     with open(filepath, "w") as f:
@@ -112,6 +113,7 @@ def main():
     parser = argparse.ArgumentParser(description="Create a session checkpoint")
     parser.add_argument("--auto", action="store_true", help="Mark as auto-generated (e.g., from hook)")
     parser.add_argument("--content", type=str, help="Checkpoint content (reads from stdin if not provided)")
+    parser.add_argument("--project-dir", type=str, help="Project root directory (defaults to cwd)")
     args = parser.parse_args()
 
     if args.content:
@@ -124,7 +126,7 @@ def main():
         print("Error: No checkpoint content provided", file=sys.stderr)
         sys.exit(1)
 
-    result = create_checkpoint(content, auto=args.auto)
+    result = create_checkpoint(content, auto=args.auto, project_dir=args.project_dir)
     print(json.dumps(result, indent=2))
 
 if __name__ == "__main__":

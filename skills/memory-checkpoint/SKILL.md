@@ -8,10 +8,10 @@ description: Save and restore session state for continuity across context compre
 ## Workflow
 
 **If user provides a query** (e.g., `/memory-checkpoint authentication bug`):
-→ Search checkpoints using `scripts/search.py "<query>" --full`
+→ Search checkpoints using `scripts/search.py "<query>" --full --project-dir "$PWD"`
 
 **If no query** (e.g., `/memory-checkpoint`):
-→ Create checkpoint using format from `references/checkpoint-format.md`, pipe to `scripts/checkpoint.py`
+→ Create checkpoint using format from `references/checkpoint-format.md`, pipe to `scripts/checkpoint.py --project-dir "$PWD"`
 
 ## Creating a Checkpoint
 
@@ -26,13 +26,13 @@ Generate content with these sections, then pipe to script:
 - **Key Files**: Important files for resuming context
 
 ```bash
-echo "CHECKPOINT_CONTENT" | python3 scripts/checkpoint.py
+echo "CHECKPOINT_CONTENT" | python3 scripts/checkpoint.py --project-dir "$PWD"
 ```
 
 ## Searching Checkpoints
 
 ```bash
-python3 scripts/search.py "query" --full
+python3 scripts/search.py "query" --full --project-dir "$PWD"
 ```
 
 Returns checkpoints ranked by semantic similarity. `--full` includes content of top result.
