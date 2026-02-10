@@ -26,10 +26,7 @@ Searches 11 biomedical databases for a given rsID and generates an interactive H
 9. References
 
 ## Setup
-Run the setup script to install Python dependencies:
-```bash
-bash ${CLAUDE_PLUGIN_ROOT}/skills/variant-research/scripts/setup.sh
-```
+The `/variant-research` command automatically runs setup on first use. The setup script creates a Python venv inside the plugin's own directory and installs dependencies (requests, jinja2). This only happens once.
 
 ## Optional API Keys
 - `NCBI_API_KEY` — increases PubMed rate limit (3/s to 10/s)

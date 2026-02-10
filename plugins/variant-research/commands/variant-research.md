@@ -15,16 +15,17 @@ Store the rsID (lowercase, trimmed) as `$RSID`.
 
 ## Script Paths
 
-All scripts live in the plugin directory. Set:
+All scripts are in the plugin's install directory. Set this once and use it for every script invocation:
+
 ```
-SCRIPTS_DIR="${CLAUDE_PLUGIN_ROOT}/skills/variant-research/scripts"
+SCRIPTS_DIR=~/.claude/plugins/variant-research/skills/variant-research/scripts
 ```
 
-Use `$SCRIPTS_DIR` for all script references below.
+Never use relative paths. Never copy scripts to the working directory.
 
 ## Setup Check (one-time only)
 
-Run setup only if the venv doesn't exist yet:
+Run setup to ensure the venv and dependencies exist:
 ```bash
 bash $SCRIPTS_DIR/setup.sh
 ```
