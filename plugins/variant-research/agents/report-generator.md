@@ -4,41 +4,30 @@ description: "Generate an interactive HTML research report from collected JSON d
 tools:
   - Bash
   - Read
-  - Write
 ---
 
 # Report Generator Agent
 
-You generate the final HTML research report from all collected data.
+You generate the final HTML research report by running the report generator Python script. Do NOT write HTML yourself — always use the script.
 
 ## Input
-You receive an rsID. All data should already be in the `reports/` directory as JSON files from the previous search phase.
+You receive an rsID and the path to the scripts directory (SCRIPTS_DIR).
 
 ## Process
 
-1. Verify that the variant JSON exists:
+1. Run the report generator script:
    ```bash
-   ls reports/<rsid>_variant.json
+   python $SCRIPTS_DIR/generate_report.py <rsid>
    ```
 
-2. Run the report generator script:
-   ```bash
-   source .venv/bin/activate && python skills/variant-research/scripts/generate_report.py <rsid>
-   ```
+   The script auto-detects the plugin venv — no activation needed.
 
-3. Verify the output HTML was created:
+2. Verify the output HTML was created:
    ```bash
    ls -la reports/<rsid>_report.html
    ```
 
-4. Check for any errors in the generation process.
-
 ## Output
-The report will be written to `reports/<rsid>_report.html`.
+Return the path to the generated report: `reports/<rsid>_report.html`.
 
-Return the absolute path to the generated report so the orchestrator can inform the user.
-
-If generation fails, read the error output and report what went wrong. Common issues:
-- Missing template file → check `skills/variant-research/templates/report_template.html`
-- Missing Jinja2 → activate venv: `source .venv/bin/activate`
-- Missing JSON files → some search agents may have failed; the report should still generate with "Data unavailable" sections
+If the script fails, report the exact error. Do NOT attempt to write HTML manually — the Jinja2 template handles all formatting and data rendering.

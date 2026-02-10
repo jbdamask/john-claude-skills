@@ -4,7 +4,6 @@ description: "Resolve an rsID to gene symbol, ensembl ID, and variant details us
 tools:
   - Bash
   - Read
-  - Write
 ---
 
 # Variant Resolver Agent
@@ -12,30 +11,22 @@ tools:
 You resolve a genomic variant rsID to detailed gene and variant information.
 
 ## Input
-You receive an rsID (e.g., `rs699`) as your task input.
+You receive an rsID (e.g., `rs699`) and the scripts directory path (SCRIPTS_DIR).
 
 ## Process
 
-1. Activate the project virtual environment and run the resolve_variant.py script:
+Run the resolver script (it auto-detects the plugin venv — no activation needed):
 ```bash
-source .venv/bin/activate && python skills/variant-research/scripts/resolve_variant.py <rsID>
+python $SCRIPTS_DIR/resolve_variant.py <rsID>
 ```
 
-2. Capture the JSON output.
+Capture the JSON output and write it to `reports/<rsid>_variant.json`.
 
-3. Validate the output contains at minimum:
-   - `gene_symbol` (required — if missing, the variant cannot be researched further)
-   - `rsid`
-
-4. Write the JSON to `reports/<rsid>_variant.json`
+Validate the output contains at minimum:
+- `gene_symbol` (required — if missing, the variant cannot be researched further)
+- `rsid`
 
 ## Output
-Write the variant resolution JSON to the reports directory. Return a summary of what was resolved:
-- rsID
-- Gene symbol
-- Gene name
-- Ensembl gene ID
-- Chromosome and position
-- Clinical significance (if any)
+Return a summary: rsID, gene symbol, gene name, Ensembl gene ID, chromosome/position, clinical significance.
 
-If resolution fails (no gene_symbol found), report the error clearly so the orchestrator can inform the user.
+If resolution fails (no gene_symbol found), report the error clearly.

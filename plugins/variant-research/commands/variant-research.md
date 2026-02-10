@@ -70,12 +70,12 @@ Wait for all to complete.
 
 ### Phase 3: Report Generation (blocking, after Phase 2)
 
-Generate the HTML report:
+Generate the HTML report by running the script. Do NOT write HTML yourself — the script uses a Jinja2 template that renders all data from the JSON files:
 ```bash
 python $SCRIPTS_DIR/generate_report.py $RSID
 ```
 
-The report will be at `reports/${RSID}_report.html`.
+The report will be at `reports/${RSID}_report.html`. If the script fails, report the error — do not attempt to manually generate HTML.
 
 ### Phase 4: Present Results
 
