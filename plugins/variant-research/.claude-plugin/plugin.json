@@ -1,0 +1,5 @@
+{
+  "name": "variant-research",
+  "description": "Comprehensive genomic variant research plugin. Provide an rsID and get a full research report covering literature, patents, clinical data, protein interactions, and drug target analysis.",
+  "version": "1.0.0"
+}

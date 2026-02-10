@@ -15,6 +15,12 @@
       "source": "./",
       "strict": false,
       "agents": ["./agents/session-recap.md"]
+    },
+    {
+      "name": "variant-research",
+      "description": "Comprehensive genomic variant research. Provide an rsID and get a full report covering literature, patents, clinical data, protein interactions, and drug target analysis.",
+      "source": "./plugins/variant-research",
+      "strict": true
     }
   ]
 }
