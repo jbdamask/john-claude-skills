@@ -13,23 +13,35 @@ The user provides an rsID (e.g., `rs699`, `rs334`, `rs12345`).
 
 Store the rsID (lowercase, trimmed) as `$RSID`.
 
-## Setup Check
-First ensure the venv exists by running setup:
-```bash
-bash scripts/setup.sh
+## Script Paths
+
+All scripts live in the plugin directory. Set:
 ```
+SCRIPTS_DIR="${CLAUDE_PLUGIN_ROOT}/skills/variant-research/scripts"
+```
+
+Use `$SCRIPTS_DIR` for all script references below.
+
+## Setup Check (one-time only)
+
+Run setup only if the venv doesn't exist yet:
+```bash
+bash $SCRIPTS_DIR/setup.sh
+```
+
+The script is idempotent — it exits immediately if setup was already completed.
 
 ## Workflow
 
 ### Phase 1: Variant Resolution (blocking)
 
-Run the variant resolver to get gene information. Create the reports directory first:
+Create the reports directory in the user's current working directory, then run the resolver:
 ```bash
 mkdir -p reports
 ```
 
 ```bash
-python scripts/resolve_variant.py $RSID
+python $SCRIPTS_DIR/resolve_variant.py $RSID
 ```
 
 The script prints JSON to stdout. Save the output to `reports/${RSID}_variant.json`.
@@ -48,11 +60,11 @@ Launch ALL FIVE as parallel Task agents using subagent_type "Bash". Each runs a 
 
 **IMPORTANT**: Launch all 5 in a SINGLE response with 5 parallel Task tool calls:
 
-1. **Literature Search**: `python scripts/fetch_literature.py $RSID`
-2. **Patent Search**: `python scripts/fetch_patents.py $RSID`
-3. **Clinical Search**: `python scripts/fetch_clinical.py $RSID`
-4. **Protein Search**: `python scripts/fetch_protein.py $RSID`
-5. **Drug Target Search**: `python scripts/fetch_drug_targets.py $RSID`
+1. **Literature Search**: `python $SCRIPTS_DIR/fetch_literature.py $RSID`
+2. **Patent Search**: `python $SCRIPTS_DIR/fetch_patents.py $RSID`
+3. **Clinical Search**: `python $SCRIPTS_DIR/fetch_clinical.py $RSID`
+4. **Protein Search**: `python $SCRIPTS_DIR/fetch_protein.py $RSID`
+5. **Drug Target Search**: `python $SCRIPTS_DIR/fetch_drug_targets.py $RSID`
 
 Wait for all to complete.
 
@@ -60,7 +72,7 @@ Wait for all to complete.
 
 Generate the HTML report:
 ```bash
-python scripts/generate_report.py $RSID
+python $SCRIPTS_DIR/generate_report.py $RSID
 ```
 
 The report will be at `reports/${RSID}_report.html`.
