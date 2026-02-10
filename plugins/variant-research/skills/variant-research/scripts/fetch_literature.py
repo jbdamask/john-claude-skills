@@ -31,7 +31,7 @@ EUTILS_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 NCBI_API_KEY = None  # Set via env var NCBI_API_KEY for higher rate limits
 
 
-def esearch(query: str, retmax: int = 20) -> list[str]:
+def esearch(query: str, retmax: int = 20, max_retries: int = 2) -> list[str]:
     """Search PubMed and return list of PMIDs."""
     params = {
         "db": "pubmed",
@@ -42,13 +42,20 @@ def esearch(query: str, retmax: int = 20) -> list[str]:
     }
     if NCBI_API_KEY:
         params["api_key"] = NCBI_API_KEY
-    resp = requests.get(f"{EUTILS_BASE}/esearch.fcgi", params=params, timeout=30)
-    resp.raise_for_status()
+
+    for attempt in range(max_retries + 1):
+        resp = requests.get(f"{EUTILS_BASE}/esearch.fcgi", params=params, timeout=30)
+        if resp.status_code == 429 and attempt < max_retries:
+            time.sleep(2 * (attempt + 1))
+            continue
+        resp.raise_for_status()
+        break
+
     data = resp.json()
     return data.get("esearchresult", {}).get("idlist", [])
 
 
-def efetch_articles(pmids: list[str]) -> list[dict]:
+def efetch_articles(pmids: list[str], max_retries: int = 2) -> list[dict]:
     """Fetch article details for a list of PMIDs using efetch XML."""
     if not pmids:
         return []
@@ -61,8 +68,14 @@ def efetch_articles(pmids: list[str]) -> list[dict]:
     }
     if NCBI_API_KEY:
         params["api_key"] = NCBI_API_KEY
-    resp = requests.get(f"{EUTILS_BASE}/efetch.fcgi", params=params, timeout=60)
-    resp.raise_for_status()
+
+    for attempt in range(max_retries + 1):
+        resp = requests.get(f"{EUTILS_BASE}/efetch.fcgi", params=params, timeout=60)
+        if resp.status_code == 429 and attempt < max_retries:
+            time.sleep(2 * (attempt + 1))
+            continue
+        resp.raise_for_status()
+        break
 
     articles = []
     root = ET.fromstring(resp.text)
@@ -165,6 +178,8 @@ def fetch_literature(rsid: str, gene_symbol: str) -> dict:
         f"{gene_symbol} AND (biomarker OR pharmacogenomics)",
     ]
 
+    sleep_interval = 0.11 if NCBI_API_KEY else 0.4
+
     for query in queries:
         result["search_queries_used"].append(query)
         try:
@@ -172,12 +187,13 @@ def fetch_literature(rsid: str, gene_symbol: str) -> dict:
             for pmid in pmids:
                 if pmid not in all_pmids:
                     all_pmids.append(pmid)
-            time.sleep(0.34)  # Respect NCBI rate limit (3/sec without key)
+            time.sleep(sleep_interval)
         except requests.RequestException as e:
             result["errors"].append(f"PubMed search failed for '{query}': {str(e)}")
 
-    # Fetch article details
+    # Fetch article details (with delay to avoid rate limit)
     if all_pmids:
+        time.sleep(sleep_interval)
         try:
             articles = efetch_articles(all_pmids[:30])
             result["pubmed_articles"] = articles

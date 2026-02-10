@@ -106,7 +106,7 @@ def resolve_variant(rsid: str, max_retries: int = 1) -> dict:
 
             result["gene_symbol"] = gene_sym
 
-            # Ensembl gene ID
+            # Ensembl gene ID — try dbnsfp first, then MyGene.info fallback
             ensembl = dbnsfp.get("ensembl", {})
             if isinstance(ensembl, dict):
                 ens_id = ensembl.get("geneid")
@@ -116,6 +116,8 @@ def resolve_variant(rsid: str, max_retries: int = 1) -> dict:
                 ens_id = None
             if isinstance(ens_id, list):
                 ens_id = ens_id[0]
+            if not ens_id and gene_sym:
+                ens_id = _lookup_ensembl_id(gene_sym)
             result["ensembl_gene_id"] = ens_id
 
             # Consequence / functional annotation
@@ -152,6 +154,28 @@ def resolve_variant(rsid: str, max_retries: int = 1) -> dict:
             return result
 
     return result
+
+
+def _lookup_ensembl_id(symbol: str) -> str | None:
+    """Look up Ensembl gene ID from gene symbol via MyGene.info."""
+    try:
+        resp = requests.get(
+            "https://mygene.info/v3/query",
+            params={"q": symbol, "fields": "ensembl.gene", "size": 1, "species": "human"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        hits = data.get("hits", [])
+        if hits:
+            ensembl = hits[0].get("ensembl", {})
+            if isinstance(ensembl, list):
+                ensembl = ensembl[0]
+            if isinstance(ensembl, dict):
+                return ensembl.get("gene")
+    except Exception:
+        pass
+    return None
 
 
 def _lookup_gene_name(symbol: str) -> str | None:
