@@ -17,7 +17,6 @@ All virtual environments are stored in a standard location with consistent namin
 
 **Examples:**
 - `~/.venvs/gitingest/`
-- `~/.venvs/docetl/`
 - `~/.venvs/myproject/`
 
 ## When to Use

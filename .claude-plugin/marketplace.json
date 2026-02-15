@@ -11,7 +11,7 @@
   "plugins": [
     {
       "name": "john-skills",
-      "description": "Development workflow tools: skills for devlog, docetl, gitingest, mcp-scanner, venv-manager, and more; plus agents like session-recap for context recovery",
+      "description": "Development workflow tools: skills for devlog, gitingest, mcp-scanner, venv-manager, and more; plus agents like session-recap for context recovery",
       "source": "./",
       "strict": false,
       "agents": ["./agents/session-recap.md"]
