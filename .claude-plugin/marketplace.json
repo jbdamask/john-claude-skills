@@ -21,6 +21,12 @@
       "description": "Comprehensive genomic variant research. Provide an rsID and get a full report covering literature, patents, clinical data, protein interactions, and drug target analysis.",
       "source": "./plugins/variant-research",
       "strict": true
+    },
+    {
+      "name": "context-analyzer",
+      "description": "Analyze Claude Code chat history to identify context window bloat sources and get optimization recommendations. Parses JSONL session files and reports on image usage, file re-reads, tool output volume, and more.",
+      "source": "./plugins/context-analyzer",
+      "strict": true
     }
   ]
 }

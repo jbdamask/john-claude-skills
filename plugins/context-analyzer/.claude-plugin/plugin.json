@@ -1,0 +1,9 @@
+{
+  "name": "context-analyzer",
+  "version": "0.1.0",
+  "description": "Analyze Claude Code chat history to identify context window bloat and get optimization recommendations",
+  "author": {
+    "name": "John Damask"
+  },
+  "keywords": ["context", "analysis", "optimization", "diagnostics"]
+}
