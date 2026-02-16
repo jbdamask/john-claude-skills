@@ -18,16 +18,17 @@ Converts a GitHub issue into a structured Beads work breakdown with epics, tasks
 ## Workflow Overview
 
 ```
-GitHub Issue → Fetch → Interactive Planning (ask_user) → File Beads → Review & Refine (up to 5x) → Handoff
+GitHub Issue → Fetch → Branch & Worktree → Interactive Planning (ask_user) → File Beads → Review & Refine (up to 5x) → Handoff
 ```
 
-The skill operates in five phases:
+The skill operates in six phases:
 
 1. **Fetch** — Pull the GitHub issue content and present a summary
-2. **Plan** — Collaborate with the user to agree on the work breakdown
-3. **File** — Create detailed Beads epics, tasks, and dependencies
-4. **Refine** — Review, proofread, polish, and iterate (up to 5 rounds)
-5. **Handoff** — Show the tree, ready queue, and sync to git
+2. **Branch** — Create a git branch and check out a worktree for the issue
+3. **Plan** — Collaborate with the user to agree on the work breakdown
+4. **File** — Create detailed Beads epics, tasks, and dependencies
+5. **Refine** — Review, proofread, polish, and iterate (up to 5 rounds)
+6. **Handoff** — Show the tree, ready queue, and sync to git
 
 ## Phase 1: Fetch the GitHub Issue
 
@@ -48,7 +49,35 @@ Also fetch any linked issues or referenced PRs mentioned in the body to build co
 
 After fetching, present a brief summary to the user covering: the issue's goal, key requirements, constraints, and any open questions or ambiguities you noticed. This sets the stage for planning.
 
-## Phase 2: Interactive Planning
+## Phase 2: Branch & Worktree
+
+After fetching the issue, create a dedicated branch and worktree so all Beads work happens in isolation from the main branch.
+
+### Branch Naming
+
+Derive the branch name from the issue number and title:
+
+```
+<issue-number>-<slugified-title>
+```
+
+For example, issue #42 titled "Add user authentication" becomes `42-add-user-authentication`. Keep the slug short — truncate to ~50 characters if needed.
+
+### Create Branch and Worktree
+
+```bash
+# Create the branch from the current HEAD
+git branch <branch-name>
+
+# Check out a worktree for the branch
+git worktree add ../<branch-name> <branch-name>
+```
+
+The worktree is created as a sibling directory to the current repo. After creating it, **all subsequent work (planning, filing beads, syncing) must happen inside the worktree directory**.
+
+If a branch or worktree with that name already exists, ask the user whether to reuse it or pick a different name.
+
+## Phase 3: Interactive Planning
 
 This is the most important phase. The goal is to reach full agreement on what work needs to happen **before any Beads issues are created**.
 
@@ -125,7 +154,7 @@ Present the acceptance criteria to the user for approval.
 
 Show the complete plan one more time with all tasks, dependencies, priorities, and acceptance criteria. Ask the user to confirm before proceeding to filing.
 
-## Phase 3: File Beads
+## Phase 4: File Beads
 
 Now grind through creating every issue in Beads. This is the execution-heavy phase — be thorough and methodical.
 
@@ -233,7 +262,7 @@ Acceptance Criteria:
 - All child tasks get `parent-child` links to their epic automatically via `--parent`
 - Use `discovered-from` for bugs or follow-up work found during analysis
 
-## Phase 4: Review & Refine
+## Phase 5: Review & Refine
 
 This phase is critical for quality. After filing all the beads, step back and do a thorough review. The goal is to ensure that worker agents will have as smooth a time as possible when they pick up these tasks.
 
@@ -282,7 +311,7 @@ Acceptance Criteria:
 
 After each pass, briefly note what was changed. Stop early if a pass produces no meaningful improvements — say "I don't think we can do much better than this" and move on to handoff.
 
-## Phase 5: Handoff
+## Phase 6: Handoff
 
 Once refinement is complete:
 
