@@ -1,0 +1,9 @@
+{
+  "name": "beads-planner",
+  "version": "0.1.0",
+  "description": "Plan-only mode and GitHub-issue-to-Beads workflow. Provides planning without auto-execution and structured work decomposition into Beads epics, tasks, and sub-tasks.",
+  "author": {
+    "name": "John Damask"
+  },
+  "keywords": ["beads", "planning", "issues", "workflow", "decomposition"]
+}

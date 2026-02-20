@@ -21,6 +21,12 @@
       "description": "Analyze Claude Code chat history to identify context window bloat sources and get optimization recommendations. Parses JSONL session files and reports on image usage, file re-reads, tool output volume, and more.",
       "source": "./plugins/context-analyzer",
       "strict": true
+    },
+    {
+      "name": "beads-planner",
+      "description": "Plan-only mode and GitHub-issue-to-Beads workflow. Provides planning without auto-execution and structured work decomposition into Beads epics, tasks, and sub-tasks with verifiable acceptance criteria.",
+      "source": "./plugins/beads-planner",
+      "strict": false
     }
   ]
 }
