@@ -1,11 +1,12 @@
 ---
 name: issue-to-beads
-description: Decomposes GitHub issues into structured Beads epics, tasks, and sub-tasks with objectively verifiable acceptance criteria. Use this skill whenever the user mentions converting GitHub issues to Beads, planning work from a GitHub issue, decomposing issues into tasks, breaking down a GitHub issue, or wants to take an issue and turn it into actionable Beads work items. Also trigger when the user says things like "plan this issue", "break down issue #X", "convert this to beads", or references a GitHub issue URL and wants it turned into trackable work. Requires that the user's project uses Beads (bd) for issue tracking.
+description: Decomposes GitHub issues into structured Beads epics, tasks, and sub-tasks with objectively verifiable acceptance criteria. Use this skill whenever the user mentions converting GitHub issues to Beads, planning work from a GitHub issue, decomposing issues into tasks, breaking down a GitHub issue, or wants to take an issue and turn it into actionable Beads work items. Also trigger when the user says things like "plan this issue", "break down issue X", "convert this to beads", or references a GitHub issue URL and wants it turned into trackable work. Requires that the user's project uses Beads (bd) for issue tracking.
+context: fork
 ---
 
 # Issue-to-Beads
 
-Converts a GitHub issue into a structured Beads work breakdown with epics, tasks, and sub-tasks — where every task has objectively verifiable acceptance criteria.
+Converts a GitHub issue into a structured Beads work breakdown with epics, tasks, and sub-tasks - each with 3-5 objectively verifiable acceptance criteria. All beads must have relationships and dependecies mapped out.
 
 ## Prerequisites
 
@@ -26,7 +27,7 @@ The skill operates in six phases:
 1. **Fetch** — Pull the GitHub issue content and present a summary
 2. **Branch** — Create a git branch and check out a worktree for the issue
 3. **Plan** — Collaborate with the user to agree on the work breakdown
-4. **File** — Create detailed Beads epics, tasks, and dependencies
+4. **File** — Create detailed Beads epics, tasks, sub-tasks, verifiable criteria, and beads relationships and dependencies
 5. **Refine** — Review, proofread, polish, and iterate (up to 5 rounds)
 6. **Handoff** — Show the tree, ready queue, and sync to git
 
@@ -103,6 +104,7 @@ Epic: [Title derived from issue]
 ```
 
 Pay careful attention to:
+- **Organization**: All tasks must belong to an Epic, which is effectively the top-level container for the GitHub issue. 
 - **Dependencies**: Which tasks block which? Get this right — it determines what shows up in `bd ready`.
 - **Parallelization**: Tasks that are independent of each other should have no blocking dependency between them, so multiple workers can pick them up simultaneously.
 - **Granularity**: File a bead for any work that would take longer than about 2 minutes to finish. If something is trivially quick, it can be a bullet point inside a parent task's description rather than its own bead.
@@ -179,6 +181,8 @@ Use `--parent <id>` when creating to place items in the hierarchy. Beads auto-as
 | Bug found during analysis | `bug` | `-t bug` |
 
 ### Priority Mapping
+
+The following table is provided for completeness, only. All tasks created for GitHub issues are considered essential and, therefore, should be one of P0, P1, P2, P3. Do not use P4 as that priority level suggests the task is unnecessary.
 
 | Priority | When to use |
 |---|---|
