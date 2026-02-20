@@ -6,7 +6,7 @@ context: fork
 
 # Git Push and Tag
 
-Stages the `.beads/` directory, commits, pushes the branch, and labels the corresponding GitHub issue as "ready". This is the final step in the issue-to-beads workflow.
+Stages the `.beads/` directory, commits, pushes the branch, and labels the corresponding GitHub issue as "Ready". This is the final step in the issue-to-beads workflow.
 
 ## Prerequisites
 
