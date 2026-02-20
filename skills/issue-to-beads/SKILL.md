@@ -335,7 +335,7 @@ Work is NOT complete until `git push` succeeds. Never stop before pushing — th
 
 ## Edge Cases
 
-- **Tiny issues** (single task, no decomposition needed): Skip the epic, create one task directly. Still include acceptance criteria with "Typecheck passes" as the final criterion.
+- **Tiny issues** (single task, no decomposition needed): One epic, one task. Still include acceptance criteria with "Typecheck passes" as the final criterion.
 - **Enormous issues** (20+ tasks): Suggest breaking the GitHub issue into multiple Beads epics, each with its own task hierarchy. Ask the user how they'd like to group them.
 - **Vague issues** (missing requirements): Use Phase 2 aggressively to fill gaps. Create "Research" or "Spike" tasks for unknowns with acceptance criteria like "A decision document exists at `docs/decisions/001-auth-approach.md` with Status, Context, Decision, and Consequences sections."
 - **Issues with existing Beads work**: Run `bd list --json` to check for duplicates before creating. Alert the user if overlap is found.
