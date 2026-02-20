@@ -1,6 +1,6 @@
 ---
 name: git-push-and-tag
-description: Final-phase skill that stages beads, commits, pushes to the remote branch, and labels the GitHub issue as "ready". Invoked by issue-to-beads as the last step after all beads have been filed, reviewed, and synced. Can also be used standalone when you have synced beads on an issue branch that need to be committed and pushed.
+description: Final-phase skill that stages beads, commits, pushes to the remote branch, and labels the GitHub issue as "Ready". Invoked by issue-to-beads as the last step after all beads have been filed, reviewed, and synced. Can also be used standalone when you have synced beads on an issue branch that need to be committed and pushed.
 context: fork
 ---
 
@@ -76,12 +76,12 @@ If it still fails, stop and ask the user for help.
 
 Confirm the issue number with the user before labeling:
 
-> I inferred issue **#\<number\>** from branch `<branch-name>`. Should I add the "ready" label to this issue?
+> I inferred issue **#\<number\>** from branch `<branch-name>`. Should I add the "Ready" label to this issue?
 
 After confirmation:
 
 ```bash
-gh issue edit <number> --add-label "ready"
+gh issue edit <number> --add-label "Ready"
 ```
 
 If the label doesn't exist on the repo, show the error and suggest the user create it manually or pick a different label.

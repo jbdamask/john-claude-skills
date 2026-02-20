@@ -25,7 +25,7 @@ Given a GitHub issue, the plugin:
 4. **Breaks down** the work into epics/tasks/sub-tasks with the user
 5. **Files beads** with descriptions, priorities, dependencies, and acceptance criteria
 6. **Reviews and refines** the breakdown (up to 5 passes)
-7. **Pushes** the branch and labels the GitHub issue as "ready"
+7. **Pushes** the branch and labels the GitHub issue as "Ready"
 
 ## Plugin Structure
 
@@ -58,7 +58,7 @@ Read-only planning mode. Explores the codebase, writes a plan to `.claude/plans/
 
 ### git-push-and-tag
 
-Final-phase skill that syncs beads, commits, pushes the branch, and adds a "ready" label to the GitHub issue. Used internally by issue-to-beads (Phase 7) but works standalone on any issue branch with synced beads.
+Final-phase skill that syncs beads, commits, pushes the branch, and adds a "Ready" label to the GitHub issue. Used internally by issue-to-beads (Phase 7) but works standalone on any issue branch with synced beads.
 
 ## Acceptance Criteria Conventions
 
