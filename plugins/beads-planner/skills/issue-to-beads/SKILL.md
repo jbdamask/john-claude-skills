@@ -96,7 +96,19 @@ The plan-only skill will:
 4. Present it to the user for approval
 5. **Stop** — no auto-execution
 
-Once the plan-only skill completes and the user has approved the plan, proceed to Phase 4. The plan file serves as a reference for the work breakdown — it is not a trigger for implementation.
+Once the plan-only skill completes and the user has approved the plan, copy the plan file into the project's `.plan` directory so it persists as a project artifact:
+
+```bash
+mkdir -p .plan
+# Find the plan file that plan-only just wrote (most recent file in .claude/plans/)
+ls -t .claude/plans/*.md | head -1
+# Copy it with the issue-derived name
+cp <plan-file> .plan/<issue-number>-<slug>.md
+```
+
+Use the issue number and slug from Phase 2 for the destination filename (e.g., `.plan/42-add-user-authentication.md`). The source file is whatever plan-only actually wrote — do not assume its slug matches the branch slug. Find the most recently created `.md` file in `.claude/plans/` and use that.
+
+Then proceed to Phase 4. The plan file serves as a reference for the work breakdown — it is not a trigger for implementation.
 
 If the user rejects the plan, stop the entire workflow.
 
@@ -337,19 +349,17 @@ After each pass, briefly note what was changed. Stop early if a pass produces no
 
 Once refinement is complete:
 
-1. Run `bd dep tree <epic-id>` to show the user the full hierarchy
-2. Run `bd ready --json` to show what's immediately actionable
-3. Summarize what was created: epic count, task count, dependency count, how many tasks are parallelizable
-4. Sync and push per the project's landing-the-plane workflow:
+1. Run `bd sync` to ensure the JSONL index reflects all Phase 6 changes
+2. Run `bd dep tree <epic-id>` to show the user the full hierarchy
+3. Run `bd ready --json` to show what's immediately actionable
+4. Summarize what was created: epic count, task count, dependency count, how many tasks are parallelizable
+5. Invoke the git-push-and-tag skill to stage, commit, push, and label the issue:
 
-```bash
-git pull --rebase
-bd sync
-git push
-git status  # MUST show "up to date with origin"
+```
+Skill: beads-planner:git-push-and-tag
 ```
 
-Work is NOT complete until `git push` succeeds. Never stop before pushing — that leaves work stranded locally.
+Work is NOT complete until the skill finishes successfully. Never stop before pushing — that leaves work stranded locally.
 
 ## Edge Cases
 
