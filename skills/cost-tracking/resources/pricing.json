@@ -1,0 +1,18 @@
+{
+  "_meta": {
+    "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "updated": "2026-03-08"
+  },
+  "models": {
+    "claude-opus-4-6":    {"input": 5,    "output": 25,   "cache_write_5m": 6.25,  "cache_write_1h": 10,    "cache_read": 0.50},
+    "claude-opus-4-5":    {"input": 5,    "output": 25,   "cache_write_5m": 6.25,  "cache_write_1h": 10,    "cache_read": 0.50},
+    "claude-opus-4-1":    {"input": 15,   "output": 75,   "cache_write_5m": 18.75, "cache_write_1h": 30,    "cache_read": 1.50},
+    "claude-opus-4":      {"input": 15,   "output": 75,   "cache_write_5m": 18.75, "cache_write_1h": 30,    "cache_read": 1.50},
+    "claude-sonnet-4-6":  {"input": 3,    "output": 15,   "cache_write_5m": 3.75,  "cache_write_1h": 6,     "cache_read": 0.30},
+    "claude-sonnet-4-5":  {"input": 3,    "output": 15,   "cache_write_5m": 3.75,  "cache_write_1h": 6,     "cache_read": 0.30},
+    "claude-sonnet-4":    {"input": 3,    "output": 15,   "cache_write_5m": 3.75,  "cache_write_1h": 6,     "cache_read": 0.30},
+    "claude-haiku-4-5":   {"input": 1,    "output": 5,    "cache_write_5m": 1.25,  "cache_write_1h": 2,     "cache_read": 0.10},
+    "claude-haiku-3-5":   {"input": 0.80, "output": 4,    "cache_write_5m": 1,     "cache_write_1h": 1.6,   "cache_read": 0.08},
+    "claude-haiku-3":     {"input": 0.25, "output": 1.25, "cache_write_5m": 0.30,  "cache_write_1h": 0.50,  "cache_read": 0.03}
+  }
+}
