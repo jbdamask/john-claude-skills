@@ -4,3 +4,6 @@ __pycache__/
 .vscode/
 .claude
 *.skill
+skills/aws-quick-endpoint/USAGE.md
+skills/aws-quick-endpoint/cloudformation-quick-endpoint.yaml
+skills/aws-quick-endpoint/endpoint-info.txt
