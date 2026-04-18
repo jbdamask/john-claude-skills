@@ -30,6 +30,9 @@ Also flag the mic-drop: a single short sentence dropped after a paragraph for dr
 
 Also flag performative informality — a breezy, hey-we're-all-friends tone that the writing hasn't earned. Fake casual is as bad as fake formal.
 
+### Avoid fragmented, punchy sentences
+Combine short, declarative sentences by following Joseph Williams principle of End-Focus. Example: "These are not bad words. They are fingerprints." becomes "These aren't bad words so much as fingerprints."
+
 ### Empty summary sentences
 Flag sentences at the end of a paragraph that sound conclusive but say nothing new: "By following these steps, we achieve better performance." / "By internalizing these principles, you can cut through the noise." These restate the premise as if it were a finding. Cut them or replace with a sentence that adds something.
 
@@ -38,6 +41,9 @@ Flag passive constructions that could be active. Active voice is more direct. "T
 
 ### Negative form where positive is stronger
 Flag negative formulations when a positive would be more direct: "He was not very often on time" → "He usually came late." "The approach is not without merit" → "The approach has merit." "Not unlike" → "similar to." The positive form says the thing; the negative form circles around it.
+
+### Emojis
+Flag emojis.
 
 ### Qualifiers
 Flag weak qualifiers that dilute the sentence: *rather, very, little, pretty, quite, somewhat, fairly, kind of, sort of, a bit, slightly.* These are Strunk & White's "leeches that infest the pond of prose." If something is good, say it's good. If it's not good enough to say without qualification, reconsider whether it belongs.
