@@ -9,55 +9,49 @@ Lints a piece of writing for the tells that signal LLM-generated text. Returns a
 
 ---
 
-## What to flag
+## Rules
 
-### Banned words
+### 100 — Vocabulary
+
+#### Rule 101: AI Fingerprint Words
 These appear statistically far more often in AI output than in human writing. Flag every instance:
 
 > delve, tapestry, landscape (used abstractly), realm, underscore (as a verb), pivotal, robust, leverage, harness, streamline, empower, unlock, innovative, seamless, cutting-edge, game-changer, synergy, underpinnings, nuanced, palpable, camaraderie, intricate, utilize, holistic, transformative, elevate, foster, navigate, unpack
 
-### Banned transition openers
-Flag sentences that open with these:
+**Fix:** Replace with a plain, specific alternative.
 
-> Notably, / Importantly, / Furthermore, / Moreover, / Consequently, / Additionally, / It's worth noting that / It is important to note that / In today's world, / At its core, / At the end of the day, / The bottom line is, / In conclusion,
+#### Rule 102: Fancy/Latinate Words
+Flag Latinate or formal words where a plain equivalent exists:
 
-### Cringe bro-speak declaratives
-These try to sound like a confident human but carry no information. Flag them and close variants:
+> "commence" → "start" / "terminate" → "end" / "facilitate" → "help" / "endeavor" → "try" / "purchase" → "buy" / "demonstrate" → "show" / "assistance" → "help" / "utilize" → "use" / "obtain" → "get"
 
-> "Here's the thing..." / "Here's why that matters." / "And that's the point." / "That's it. That's the whole idea." / "This is where it gets interesting." / "So what does that mean in practice?" / "Let that sink in." / "Think about that for a second." / "No, really." / "Seriously." / "Full stop." / "That's not a bug. That's a feature." / "The secret? [x]" / "The result? [restatement]" / "Stick with me here." / "Bear with me." / "This might sound obvious, but..." / "Stay with me." / "Let's dive in." / "Let's unpack that."
+**Fix:** Replace with the plain equivalent. Fancy words signal effort spent on dressing rather than substance.
 
-Also flag the mic-drop: a single short sentence dropped after a paragraph for dramatic effect, carrying no new information.
+#### Rule 103: Qualifiers
+Flag weak qualifiers that dilute the sentence: *rather, very, little, pretty, quite, somewhat, fairly, kind of, sort of, a bit, slightly.*
 
-Also flag performative informality — a breezy, hey-we're-all-friends tone that the writing hasn't earned. Fake casual is as bad as fake formal.
+**Fix:** Cut the qualifier. If the claim can't stand without it, reconsider whether the claim belongs.
 
-### Avoid fragmented, punchy sentences
-Combine short, declarative sentences by following Joseph Williams principle of End-Focus. Example: "These are not bad words. They are fingerprints." becomes "These aren't bad words so much as fingerprints."
+#### Rule 104: Overstatement
+Flag superlatives and absolutes used loosely: "the most important," "revolutionary," "absolutely," "completely," "totally," "always," "never," "the best ever," "unprecedented."
 
-### Empty summary sentences
-Flag sentences at the end of a paragraph that sound conclusive but say nothing new: "By following these steps, we achieve better performance." / "By internalizing these principles, you can cut through the noise." These restate the premise as if it were a finding. Cut them or replace with a sentence that adds something.
+**Fix:** Replace with an accurate, specific claim, or cut. Let the reader decide if it's impressive.
 
-### Passive voice
-Flag passive constructions that could be active. Active voice is more direct. "The results were analyzed by the team" → "The team analyzed the results." Exception: passive is appropriate when the actor is unknown, irrelevant, or deliberately de-emphasized.
+---
 
-### Negative form where positive is stronger
-Flag negative formulations when a positive would be more direct: "He was not very often on time" → "He usually came late." "The approach is not without merit" → "The approach has merit." "Not unlike" → "similar to." The positive form says the thing; the negative form circles around it.
+### 200 — Syntax
 
-### Emojis
-Flag emojis.
+#### Rule 201: Passive Voice
+Flag passive constructions that could be active. "The results were analyzed by the team" → "The team analyzed the results."
 
-### Qualifiers
-Flag weak qualifiers that dilute the sentence: *rather, very, little, pretty, quite, somewhat, fairly, kind of, sort of, a bit, slightly.* These are Strunk & White's "leeches that infest the pond of prose." If something is good, say it's good. If it's not good enough to say without qualification, reconsider whether it belongs.
+**Fix:** Rewrite as active. Exception: leave passive when the actor is unknown, irrelevant, or deliberately de-emphasized.
 
-### Adjective and adverb overload
-Flag writing that leans on adjectives and adverbs where strong nouns and verbs would do more work. "She walked quickly and nervously" → "She hurried." "A very large number of significant problems" → "Many problems." Nouns and verbs carry meaning; adjectives and adverbs often just pad it.
+#### Rule 202: Negative Form
+Flag negative formulations when a positive would be more direct. "He was not very often on time" → "He usually came late." "The approach is not without merit" → "The approach has merit." "Not unlike" → "similar to."
 
-### Overstatement
-Flag superlatives and absolutes used loosely: "the most important," "revolutionary," "absolutely," "completely," "totally," "always," "never," "the best ever," "unprecedented." Overstatement is easy to ignore and erodes trust. Say what is true; let the reader decide if it's impressive.
+**Fix:** Rewrite in positive form. The positive says the thing; the negative circles around it.
 
-### Fancy words
-Flag Latinate or formal words where a plain equivalent exists. Prefer the short and the Saxon: "commence" → "start," "terminate" → "end," "facilitate" → "help," "endeavor" → "try," "purchase" → "buy," "demonstrate" → "show," "assistance" → "help," "utilize" → "use," "obtain" → "get." Fancy words signal effort spent on dressing rather than substance.
-
-### Needless words
+#### Rule 203: Needless Words
 Flag phrases where words can be cut without losing meaning:
 
 - "the fact that" → cut or restructure
@@ -68,41 +62,126 @@ Flag phrases where words can be cut without losing meaning:
 - "as previously mentioned" → cut
 - "The reason for this is that" / "The reasoning is that" → cut; make the claim directly
 - Redundant pairs: "each and every," "first and foremost," "various different"
-- Filler openers: "So," / "Well," / "Look," / "Basically," / "Essentially," — fine as signposts when followed by genuine clarification; flag when they introduce nothing
+- Filler openers: "So," / "Well," / "Look," / "Basically," / "Essentially," — flag when they introduce nothing
 
-### Vagueness and unsupported claims
-Flag claims that invoke unnamed authority or avoid specificity: "some experts say," "research shows," "many people believe," "it has been shown that." Name the source or drop the attribution. Also flag adjectives that describe without specifying — "powerful, flexible, intuitive" applied without evidence.
+**Fix:** Cut or restructure as shown above.
 
-### Orphaned demonstrative pronouns
-Flag "this," "that," "these," "those" when the noun they refer to is not in the same sentence or immediately before it. "This creates friction in production" — what is "this"? Name the referent or restructure.
+#### Rule 204: Adjective and Adverb Overload
+Flag writing that leans on adjectives and adverbs where strong nouns and verbs would do more work. "She walked quickly and nervously" → "She hurried." "A very large number of significant problems" → "Many problems."
 
-### Fluency without understanding
-Flag sentences that are grammatically correct but explain nothing — writing that sounds authoritative while glossing over substance. Defining a term using itself, invoking jargon without unpacking it for the audience, describing a process without saying what it actually does. Read for whether the sentence would inform a reader who doesn't already know the answer.
+**Fix:** Replace adjective/adverb combinations with stronger nouns and verbs.
 
-### Flat sentence rhythm
-Flag passages where every sentence is roughly the same length. Monotonous rhythm makes writing harder to follow and signals no sentence is being emphasized over others. Good writing mixes long and short. Flag the monotony; short sentences in isolation are fine.
+#### Rule 205: Fragmented Punchy Sentences
+Flag stacked short declarative sentences. "These are not bad words. They are fingerprints."
 
-### Wrong subject
-Flag sentences where the grammatical subject doesn't match what the sentence is actually about. "Readers are better guided when the subject matches the main idea" puts readers as the subject when the sentence is about sentence structure. "Choosing the right subject keeps the writing clear" is correct. When subjects drift from the topic, readers lose the thread.
+**Fix:** Combine using End-Focus (Joseph Williams). "These aren't bad words so much as fingerprints."
 
-### Structural tells
-- Restating what was just said (outro paragraph that summarizes the section above)
-- Restating what is about to be said (intro that previews rather than says)
-- Bullet-pointing everything instead of writing in prose when prose would do
-- Rhetorical questions posed and immediately answered in the next sentence
+#### Rule 206: Flat Sentence Rhythm
+Flag passages where every sentence is roughly the same length. Monotonous rhythm signals no sentence is being emphasized over others.
 
-### Overuse of headers
-Flag documents where headers appear between short paragraphs or single-sentence sections. A header is justified when a document is long enough to need navigation, or when sections are genuinely distinct topics. It is not justified as a substitute for a good topic sentence. Headers delineate major sections; paragraphs handle everything else. In the cleaned version, collapse over-headered sections into prose, absorbing the header as a topic sentence or cutting it.
+**Fix:** Vary sentence length. Do not add filler — restructure or combine to create contrast.
 
-### Simplicity
-Flag writing more complex than the content requires: passive constructions that could be active (see above), nominalized verbs ("make a decision" → "decide," "provide a summary" → "summarize"), and jargon where a plain word exists. Einstein's standard: as simple as possible, but no simpler. Do not flag necessary technical terms or complexity that carries real meaning. Flag complexity doing no work.
+#### Rule 207: Wrong Subject
+Flag sentences where the grammatical subject doesn't match what the sentence is actually about. "Readers are better guided when the subject matches the main idea" is about sentence structure, not readers.
 
-### Em dashes — use judgment
-Do not flag em dashes used to insert a clarifying detail, a quick shift, or a sharp aside. These are legitimate and add rhythm. Flag em dashes used purely as a dramatic pause before a punchline or restatement — where the clause after the dash adds nothing the sentence doesn't already imply.
+**Fix:** Rewrite so the grammatical subject is the thing the sentence is actually about. "Choosing the right subject keeps the writing clear."
+
+#### Rule 208: Misused Em Dash
+Flag em dashes used purely as a dramatic pause before a punchline or restatement — where the clause after the dash adds nothing the sentence doesn't already imply.
+
+**Fix:** Cut the clause after the dash, or restructure the sentence to remove the pause entirely. Do not flag em dashes used to insert a clarifying detail or sharp aside.
+
+#### Rule 209: Nominalization
+Flag nominalized verbs where the verb form is stronger: "make a decision" → "decide," "provide a summary" → "summarize," "conduct an analysis" → "analyze," "give consideration to" → "consider."
+
+**Fix:** Replace with the verb form. Nominalizations bury the action; verbs surface it.
 
 ---
 
-## What NOT to flag
+### 300 — Rhetorical Patterns
+
+#### Rule 301: Banned Transition Openers
+Flag sentences that open with:
+
+> Notably, / Importantly, / Furthermore, / Moreover, / Consequently, / Additionally, / It's worth noting that / It is important to note that / In today's world, / At its core, / At the end of the day, / The bottom line is, / In conclusion,
+
+**Fix:** Cut the opener and restructure the sentence to open with the actual claim.
+
+#### Rule 302: Bro-Speak Declaratives
+Flag these and close variants:
+
+> "Here's the thing..." / "Here's why that matters." / "And that's the point." / "That's it. That's the whole idea." / "This is where it gets interesting." / "So what does that mean in practice?" / "Let that sink in." / "Think about that for a second." / "No, really." / "Seriously." / "Full stop." / "That's not a bug. That's a feature." / "The secret? [x]" / "The result? [restatement]" / "Stick with me here." / "Bear with me." / "This might sound obvious, but..." / "Stay with me." / "Let's dive in." / "Let's unpack that."
+
+**Fix:** Cut entirely.
+
+#### Rule 303: Mic-Drop
+Flag a single short sentence dropped after a paragraph for dramatic effect, carrying no new information.
+
+**Fix:** Cut entirely.
+
+#### Rule 304: Performative Informality
+Flag a breezy, hey-we're-all-friends tone the writing hasn't earned. Signs: unsolicited asides to the reader, rhetorical winks, conspiratorial "we." The test: would this register as warm from a stranger, or presumptuous?
+
+**Fix:** Rewrite in a register the content has earned. Remove the aside or restate it as a direct claim.
+
+#### Rule 305: Empty Summary Sentences
+Flag sentences at the end of a paragraph that sound conclusive but say nothing new: "By following these steps, we achieve better performance." / "By internalizing these principles, you can cut through the noise."
+
+**Fix:** Cut, or replace with a sentence that adds new information.
+
+#### Rule 306: Preview/Summary Structure
+Flag two related structural tells:
+- **Outro summaries**: a closing paragraph that restates what the section just said
+- **Intro previews**: an opening that describes what is about to be said instead of saying it
+
+**Fix:** Cut the outro or preview. Say the thing directly.
+
+#### Rule 307: Rhetorical Questions
+Flag rhetorical questions posed and immediately answered in the next sentence. "So why does this matter? Because it affects everything downstream."
+
+**Fix:** Rewrite as a direct statement. "It affects everything downstream."
+
+---
+
+### 400 — Substance
+
+#### Rule 401: Vagueness and Unsupported Claims
+Flag claims that invoke unnamed authority or avoid specificity: "some experts say," "research shows," "many people believe," "it has been shown that." Also flag adjectives that describe without specifying — "powerful, flexible, intuitive" applied without evidence.
+
+**Fix:** Name the source or drop the attribution. Replace vague adjectives with specific evidence or cut them.
+
+#### Rule 402: Fluency Without Understanding
+Flag sentences that are grammatically correct but explain nothing — writing that sounds authoritative while glossing over substance. Signs: defining a term using itself, invoking jargon without unpacking it, describing a process without saying what it actually does.
+
+**Fix:** Rewrite to actually explain, or cut if the content can't be substantiated. Read for whether the sentence would inform a reader who doesn't already know the answer.
+
+#### Rule 403: Orphaned Demonstrative Pronouns
+Flag "this," "that," "these," "those" when the noun they refer to is not in the same sentence or immediately before it. "This creates friction in production" — what is "this"?
+
+**Fix:** Name the referent explicitly, or restructure the sentence.
+
+---
+
+### 500 — Formatting
+
+#### Rule 501: Overuse of Headers
+Flag documents where headers appear between short paragraphs or single-sentence sections. A header is justified when a document is long enough to need navigation, or when sections are genuinely distinct topics. It is not justified as a substitute for a good topic sentence.
+
+**Fix:** Collapse over-headered sections into prose. Absorb the header as a topic sentence or cut it.
+
+#### Rule 502: Bullet-Pointing Where Prose Would Do
+Flag lists used where continuous prose would read better. Bullets fragment reasoning; prose connects it. If the bullets could be joined with "because," "therefore," or "which means," they belong in prose.
+
+**Fix:** Rewrite as prose. Reserve lists for genuinely enumerable, parallel items with no logical flow between them.
+
+#### Rule 503: Emojis
+Flag emojis.
+
+**Fix:** Remove.
+
+---
+
+## What NOT to Flag
 
 Some patterns get labeled "LLM-like" but are fine when used intentionally:
 
@@ -115,38 +194,25 @@ Some patterns get labeled "LLM-like" but are fine when used intentionally:
 
 ---
 
-## Signal-to-noise principle
+## Signal-to-Noise Principle
 Every sentence should do work. If a sentence could be removed and the paragraph would be clearer, cut it. If a clause could be cut and the sentence would be tighter, cut it. The contribution should be commensurate with the length — the reader should finish each paragraph having learned something.
 
 ---
 
-## Output format
+## Output Format
 
-### 1. Lint report
-List every flagged item with:
+### 1. Lint Report
+For each rule with hits, output a jsonl object that includes:
+- The rule number and name (e.g., **Rule 302: Bro-Speak Declaratives**)
 - The offending text (quoted)
-- Which category it falls under
-- A one-line suggestion (when a fix is non-obvious)
+- The fix applied or suggested
 
-Group by category. Skip categories with zero hits. If the writing is clean, say "No issues found." and stop.
+Group by rule number. Skip rules with zero hits. If the writing is clean across all rules, output "No issues found." and stop.
 
-### 2. Cleaned version
-Rewrite the text with all flagged items removed or replaced. Preserve the author's voice and meaning. Do not add content.
-
-Rules for the rewrite:
-- Replace banned and fancy words with plain, specific alternatives
-- Cut bro-speak declaratives, empty summary sentences, and mic-drops entirely
-- Cut banned transition openers and restructure the sentence
-- Rewrite passive constructions as active where appropriate
-- Rewrite negative formulations in positive form where stronger
-- Cut qualifiers and replace adjective/adverb combinations with stronger nouns and verbs
-- Rewrite rhetorical Q&A pairs as direct statements
-- Cut needless words and redundant phrases
-- Name the referent for orphaned demonstrative pronouns
-- Do not introduce new AI tells while fixing the old ones
+### 2. Cleaned Version
+Rewrite the text with every flagged item resolved per its rule's **Fix** instruction. Preserve the author's voice and meaning. Do not add content. Do not introduce new AI tells while fixing the old ones.
 
 ---
 
 ## Tone
-
-Be direct. This is a linter, not a book report. The lint report should read like compiler output — specific, terse, actionable. Don't praise the writing or pad the response. If it's clean, say "No issues found." and stop.
+Be direct. This is a linter, not a book report. The lint report should read like compiler output — specific, terse, actionable. Don't praise the writing or pad the response.
