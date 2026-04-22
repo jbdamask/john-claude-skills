@@ -20,6 +20,19 @@ Sets up McBrain — a personal LLM-maintained knowledge base — end-to-end for 
 
 ---
 
+## Execution policy
+
+Do as much of this setup yourself as possible using available tools (Bash, Write, Edit, Read, etc.). Only defer to the user when a step genuinely cannot be performed by Claude — for example:
+
+- GUI-only actions (installing Obsidian, clicking through Google Drive for Desktop preferences, installing browser extensions, signing into accounts)
+- Interactive OAuth flows (`gh auth login` browser handoff)
+- Decisions that require the user's input (vault name, path, backup strategy, confirming destructive actions)
+- Restarting Claude Desktop
+
+For everything else — creating directories, writing files, initializing git, creating the GitHub repo via `gh`, appending to `claude_desktop_config.json`, committing, pushing — run the commands yourself. Don't hand the user a shell snippet and ask them to paste it when you can just execute it. When you do need the user to act, be explicit about why (e.g., "this step requires the Obsidian GUI") and give them the exact steps to follow.
+
+---
+
 ## Step 1: Name and locate the vault
 
 Ask the user:
