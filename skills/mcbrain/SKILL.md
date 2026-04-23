@@ -42,50 +42,16 @@ If `CLAUDE.md` is missing or unreadable, stop and tell the user — something is
 
 McBrain is a living document. Its conventions evolve as the user refines them, and CLAUDE.md is checked into the vault so those conventions travel with the knowledge base. Hardcoding the schema into this skill would mean two places to keep in sync. Instead: this skill catches the user's intent, routes to the right vault, and defers to CLAUDE.md for the spec.
 
-## NON-NEGOTIABLE: raw source files must exist before wiki pages are written
+## Deferrals to CLAUDE.md
 
-**No wiki page may be created or updated based on web search results, synthesized summaries, or any content that has not first been saved as a file in `raw/`.** This is an immutable rule, not a preference.
+The following procedures are specified in the vault's CLAUDE.md and must be followed from there — do not rely on a cached version in this skill:
 
-The failure mode to avoid: Claude runs a web search, synthesizes findings, and writes wiki pages directly from the search output. This produces wiki pages with no backing source files — the claims are unverifiable, the frontmatter `sources:` field is a lie, and future sessions cannot re-read the original material.
+- **Raw-sources-first rule** — see CLAUDE.md's immutable rule forbidding wiki pages built from search results without a backing file in `raw/`.
+- **Source ingestion paths** — how Obsidian Web Clipper, Claude in Chrome, and hand drops feed the ingest procedure.
+- **Handling PDFs in `raw/papers/`** — the upload → Cowork `pdf` skill → `.md` → figure prose workflow.
+- **Handling images in sources** — text-first reading, filtering decorative images.
 
-**The correct sequence for any web-sourced content:**
-
-1. Identify the URLs to fetch
-2. Use `mcp__workspace__web_fetch` or Claude in Chrome to retrieve each article/page
-3. Save the raw content as markdown to `raw/articles/<slug>.md` via the vault MCP
-4. Only then run the ingest procedure from CLAUDE.md against those files
-
-If a URL cannot be fetched (paywalled, blocked, returns an error), note it explicitly rather than synthesizing from the search snippet. Search snippets are not sources.
-
-There is no exception to this rule. If the user says "just write the wiki page from the search results," explain the rule and offer to fetch the sources properly.
-
----
-
-## Source ingestion paths
-
-Sources can arrive in the vault through several routes. All feed the same ingest procedure in CLAUDE.md once the file is on disk:
-
-- **Obsidian Web Clipper** — the user can one-click a web article into `raw/articles/` from their browser. When the user says "ingest the article I just clipped," check `raw/articles/` for the newest file.
-- **Claude in Chrome via Cowork** — when the user asks to ingest a URL, navigate the page with the Claude in Chrome extension, convert to markdown, and save to `raw/articles/<slug>.md`. This works for paywalled or authenticated pages since it uses the user's real browser session.
-- **Hand drops** — pasted text goes to `raw/notes/`, manual article markdown to `raw/articles/`. PDFs go to `raw/papers/` and require special handling — see below.
-
-After the source is in `raw/`, run the ingest procedure from CLAUDE.md.
-
-## Handling PDFs
-
-When a `.pdf` exists in `raw/papers/` without a companion `.md`, the full workflow:
-
-1. Ask the user to upload the PDF into the chat.
-2. Invoke **Cowork's built-in `pdf` skill** — it handles the entire extraction: text, page rendering, and visual inspection.
-3. Write the extracted text to `raw/papers/<name>.md` via the vault MCP.
-4. Render pages containing substantive figures and write detailed prose descriptions under `## Figure N — [Title]` headings.
-5. Proceed with the normal ingest procedure from CLAUDE.md.
-
-**Do NOT save rendered PNGs to `raw/assets/`.** Prose descriptions are queryable; stored image files are not.
-
-## Handling images in web-clipped articles
-
-Read the text first, identify which images look substantive (diagrams, data screenshots) versus decorative (hero images, stock photos), then view only the substantive ones separately. Don't burn context on decorative images.
+If CLAUDE.md and this skill ever disagree, CLAUDE.md wins.
 
 ## Backup and version control
 
