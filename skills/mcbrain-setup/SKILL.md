@@ -146,7 +146,8 @@ VAULT_PATH/
 │   ├── index.md            # Master catalog of all wiki pages
 │   ├── log.md              # Append-only operation log
 │   └── overview.md         # High-level synthesis of everything in McBrain
-├── .obsidian/              # Created by Obsidian on first open — leave alone
+├── .obsidian/              # Pre-seeded with app.json so Obsidian picks up vault settings on first open
+│   └── app.json            # Copied from references/app.json — sets new-note location, attachments, and ignore filters
 └── CLAUDE.md               # Schema + instructions for Claude (the key config file)
 ```
 
@@ -156,6 +157,8 @@ Read `references/claude-md-template.md` to get the CLAUDE.md content.
 Read `references/index-template.md` to get the index.md starter.
 Read `references/log-template.md` to get the log.md starter.
 Read `references/overview-template.md` to get the overview.md starter.
+
+Also create `VAULT_PATH/.obsidian/` and copy `references/app.json` into it as `VAULT_PATH/.obsidian/app.json` verbatim. This pre-configures Obsidian so new notes land in `wiki/`, attachments go to `raw/assets`, and `raw/` is excluded from search/graph — the manual Obsidian toggles in Step 6 (items 3–5) become unnecessary but can still be verified in the UI.
 
 After writing CLAUDE.md from the template, append the following two sections:
 
@@ -279,9 +282,9 @@ Show the user the final config before writing it and ask them to confirm.
 
 1. **Open Obsidian** → click "Open folder as vault" → select `VAULT_PATH`
 2. **Verify wikilinks are enabled**: Settings → Files & Links → confirm **"Use [[Wikilinks]]"** is on (default)
-3. **Set default note location to `wiki/`**: Settings → Files & Links → Default location for new notes → "In the folder specified" → `wiki`
-4. **Exclude `raw/` from search and graph**: Settings → Files & Links → Excluded files → add `raw/`
-5. **Attachment folder**: Settings → Files & Links → Default location for new attachments → "In the folder specified below" → `raw/assets`
+3. **Default note location to `wiki/`** — pre-set via `.obsidian/app.json`. Verify under Settings → Files & Links → Default location for new notes → "In the folder specified" → `wiki`.
+4. **Exclude `raw/` from search and graph** — pre-set via `.obsidian/app.json`. Verify under Settings → Files & Links → Excluded files → `raw/`.
+5. **Attachment folder** — pre-set via `.obsidian/app.json`. Verify under Settings → Files & Links → Default location for new attachments → "In the folder specified below" → `raw/assets`.
 6. **Recommended Obsidian plugins** (all optional):
    - **Dataview** (community) — queryable YAML frontmatter
    - **Graph View** (built-in) — see the shape of the vault
@@ -342,3 +345,4 @@ Claude will read the source, discuss key points, write wiki pages in `wiki/`, up
 - `references/index-template.md` — Starter index.md
 - `references/log-template.md` — Starter log.md
 - `references/overview-template.md` — Starter overview.md
+- `references/app.json` — Obsidian vault settings; copy verbatim to `VAULT_PATH/.obsidian/app.json`
