@@ -40,15 +40,24 @@ OUTPUT FORMAT — return exactly this Markdown, nothing else:
 - <anything unresolved or worth a follow-up task>
 
 ## Sources
-1. [<Title>](<URL>) — <one-line why-it-matters>
-2. [<Title>](<URL>) — <one-line why-it-matters>
+1. [<Title>](<URL>) — <YYYY-MM-DD or YYYY-MM or YYYY> — Credibility: <1-5> — <one-line why-it-matters>
+2. [<Title>](<URL>) — <YYYY-MM-DD or YYYY-MM or YYYY> — Credibility: <1-5> — <one-line why-it-matters>
 ...
+
+CREDIBILITY RUBRIC (assign one score per source)
+- 5 — Articles in high-impact peer-reviewed journals (Nature, Science, NEJM, Cell, top field-specific journals), official standards bodies, primary government data.
+- 4 — Pre-prints on recognized servers (arXiv, bioRxiv, medRxiv, SSRN), conference proceedings, working papers from established institutions.
+- 3 — Blog posts or essays from recognized domain experts, established trade publications, well-edited industry analyst reports.
+- 2 — Personal Substacks / Medium posts from non-experts, mid-tier news aggregators, vendor marketing pages with original claims.
+- 1 — Tweets / social media posts, anonymous forum comments, content farms, AI-generated summary sites.
+
+If a source straddles two levels, pick the lower one and explain in the why-it-matters line.
 
 HARD RULES
 - Every non-trivial claim in Summary/Key Findings must be traceable to a source in the Sources list.
 - Cite inline with [n] matching the numbered Sources list where it helps.
+- Every source MUST include a publication/last-updated date and a credibility score. If you cannot find a date, write "undated" and drop the credibility score by 1 (minimum 1).
 - Do not invent URLs. If you did not open a page, do not list it.
-- Under 600 words total, excluding Sources.
 ```
 
 ## Notes on Using the Template
