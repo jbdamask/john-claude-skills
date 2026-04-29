@@ -16,6 +16,13 @@ Then install the skills:
 /plugin install john-skills@john-claude-skills
 ```
 
+And plugins:
+
+```shell
+/plugin install beads-planner@john-claude-skills
+/plugin install context-analyzer@john-claude-skills
+``
+
 ## Skills
 
 Browse the `skills/` directory to see available skills. Each skill has a `SKILL.md` with its description and usage instructions.

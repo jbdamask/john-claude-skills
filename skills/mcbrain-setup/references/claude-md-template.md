@@ -33,8 +33,17 @@ tags: [tag1, tag2]
 sources: [raw/articles/filename.md]
 confidence: high | medium | low
 updated: YYYY-MM-DD
+research_date: YYYY-MM-DD
+source_dates: YYYY to YYYY
 ---
 ```
+
+**Date metadata rules — non-negotiable:**
+- `updated`: the date this wiki page was last edited by Claude.
+- `research_date`: the date Claude conducted the research behind this page. Must always be set. Tells the user how fresh the underlying research is.
+- `source_dates`: the publication date range of sources cited (e.g. `2019 to 2026`). For a single source, use that date. For internal notes or email threads with no publication date, use the document date.
+
+**Why this matters:** Knowledge bases go stale. Technology benchmarks, API terms, pricing, regulatory status, and competitive landscapes can shift within months. Every page must be auditable for currency so the user knows what to trust and what to refresh. During lint passes, flag any page where `research_date` is more than 6 months old and external claims may be stale.
 
 Use `[[wikilinks]]` for every cross-reference. Every named thing (person, project, concept) that appears in more than one page gets its own wiki page. Link aggressively — the graph is the value.
 
@@ -49,7 +58,11 @@ After the YAML frontmatter, every wiki page should follow this structure:
 
 **Summary:** One to two sentences describing this page.
 
-**Sources:** List of raw source files this page draws from.
+**Sources:** List of raw source files this page draws from (with publication dates where known).
+
+**Research date:** YYYY-MM-DD — when Claude researched this page.
+
+**Source dates:** YYYY to YYYY — publication date range of sources cited.
 
 **Last updated:** YYYY-MM-DD
 
@@ -113,6 +126,7 @@ When asked to lint:
    - **Format drift** — pages that don't follow the page body format
    - **Data gaps** — claims that could be verified or enriched with a web search; propose specific searches
    - **Suggested new sources** — topics or questions where the wiki would benefit from more material; name concrete sources (papers, articles, books) worth adding to `raw/`
+   - **Stale pages** — any page where `research_date` is more than 6 months before today's date AND the page contains external claims (pricing, API terms, regulatory status, competitive landscape). Flag these explicitly with a suggested refresh action.
 4. Propose specific fixes for each finding
 5. Append to `wiki/log.md`: `## [YYYY-MM-DD] lint`
 
