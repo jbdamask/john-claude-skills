@@ -26,6 +26,10 @@ Your research must cover all of the following:
 7. Industry adoption and notable customers
 8. Recent news
 
+## The research process
+
+Run the /deep-research workflow if available. Otherwise, you are to act as the orchestrator and fan out subagents to perform the research.
+
 ## Disambiguation — critical
 
 Different companies often share the same or similar names. Self-review your research steps and verify that every fact you include makes sense in the context of the specific company the user asked for (cross-check industry, headquarters, website domain, and founding details across sources). DO NOT include information about companies other than the one requested. If the name is genuinely ambiguous (multiple plausible matches), ask the user which one they mean — or, if they gave a URL, treat the URL's company as authoritative.
