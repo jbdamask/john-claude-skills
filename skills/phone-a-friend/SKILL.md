@@ -60,7 +60,11 @@ The prompt MUST:
 - Tell the friend it has read/search tools (Read, Grep, Glob, WebSearch, WebFetch, read-only Bash) and should use them when grounding its opinion would benefit from real evidence — but that Edit, Write, NotebookEdit, and mutating Bash commands are off-limits.
 - End with: "Respond with (a) your independent assessment, (b) specific critiques or concerns, (c) questions for me or for the human (label which), and (d) a current position (agree / disagree / need-more-info) on the primary ask. If you need to read files, search the web, or run commands to form your view, do so before responding."
 
-Capture the Agent tool call's returned agent ID or name — it is needed for follow-up turns via SendMessage.
+**Capture the Agent tool call's returned agent ID** (the opaque hex handle, e.g. `aac8d55b956cda1a4`) and save it. This ID is the handle for every follow-up turn via SendMessage. Use the **ID, never the name**, for all subsequent SendMessage calls — see the addressing note below.
+
+> **Why ID, not name — the idle-agent gotcha.** A spawned agent is only addressable *by name* while it is actively running a task. Between debate turns the friend finishes its turn and goes idle, which **unregisters its name**. A `SendMessage({to: "<name>"})` at that point fails with *"No agent named '…' is currently addressable."* The **agent ID always works**: the harness resumes the idle agent from its transcript. So always address the friend by its saved ID.
+>
+> **Expected, not an error:** when you SendMessage to an idle friend by ID, you may see *"Agent '<id>' had no active task; resumed from transcript in the background with your message. You'll be notified when it finishes."* This is normal — the friend was idle between turns and is now processing your message. The reply arrives asynchronously via notification; wait for it before forming the next turn. Do **not** spawn a new Agent in response to this message.
 
 ### Phase 4: The dialogue loop
 
@@ -74,7 +78,7 @@ After turn 1, enter a dialogue loop. Each iteration:
    - Surface new considerations the friend may have missed.
    - Ask the friend for clarification where its reasoning is unclear.
    - Re-state the primary's current position (agree / disagree / evolving).
-3. **Continue the dialogue** by calling **SendMessage** with `to` set to the friend's agent ID from Phase 3. Do NOT call Agent again — that would start a fresh agent with no memory of the prior turns. Always SendMessage to continue.
+3. **Continue the dialogue** by calling **SendMessage** with `to` set to the friend's **agent ID** from Phase 3 — never its name (the name unregisters once the friend goes idle between turns; see the addressing note in Phase 3). Do NOT call Agent again — that would start a fresh agent with no memory of the prior turns. Always SendMessage by ID to continue. If a SendMessage reports the friend was idle and "resumed from transcript in the background," that is expected — wait for the friend's reply to arrive before proceeding.
 4. **Check for termination** after each response (see Phase 5).
 
 **No hard iteration cap.** The task is to reach a real outcome — either a genuine consensus or a clean agree-to-disagree — not to hit a turn counter. Both agents should be explicitly told: "Your job is to reach consensus *or* to cleanly agree to disagree. Do not stop debating just because you are tired of debating. Do not force agreement to end the dialogue. When you have genuinely exhausted the productive arguments, say so explicitly."
@@ -170,7 +174,7 @@ A stopped debate is not necessarily a finished debate. If the user reads the rep
 
 To resume:
 
-1. Use **SendMessage** with `to` set to the friend's original agent ID (saved from Phase 3 and reported in Phase 6). Do **not** spawn a new Agent — a fresh agent has no memory of the prior debate.
+1. Use **SendMessage** with `to` set to the friend's original **agent ID** (saved from Phase 3 and reported in Phase 6) — not its name. By the time the user sends the jury back, the friend has long been idle and its name is unregistered; only the ID resolves. Do **not** spawn a new Agent — a fresh agent has no memory of the prior debate. Expect the "resumed from transcript in the background" message here (the friend has been idle since the last report); wait for its reply.
 2. Frame the resumption: "The user has reviewed our report and wants us to continue debating. Their specific guidance is: [quote the user's feedback verbatim]. Let's dig further on the unresolved points."
 3. Re-enter the dialogue loop from Phase 4. The primary still drives, escalation to the user is still available (Phase 4b), and the termination criteria still apply (Phase 5).
 4. When the next terminal state is reached, report back again (Phase 6). The user can send the jury back repeatedly — there is no limit.
