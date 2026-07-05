@@ -66,6 +66,8 @@ The prompt MUST:
 >
 > **Expected, not an error:** when you SendMessage to an idle friend by ID, you may see *"Agent '<id>' had no active task; resumed from transcript in the background with your message. You'll be notified when it finishes."* This is normal — the friend was idle between turns and is now processing your message. The reply arrives asynchronously via notification; wait for it before forming the next turn. Do **not** spawn a new Agent in response to this message.
 
+**Print the friend's Claude session ID to the user immediately after spawning**, on its own line, e.g. `Friend's Claude session ID: <id>`. This lets the user (or a client wrapping this session) decide whether to store it somewhere for later reference or resumption. Surface it plainly; do not bury it in prose.
+
 ### Phase 4: The dialogue loop
 
 After turn 1, enter a dialogue loop. Each iteration:
@@ -162,7 +164,7 @@ Return control to the user with a report containing:
 3. **Key points that shifted** during the debate — what the primary learned or changed its mind on, what the friend updated. This is often the most valuable part for the user.
 4. **Risks and caveats** both agents flagged.
 5. **Recommended next action** — what the primary will do next, pending user approval. If agree-to-disagree, offer both paths.
-6. **Turn count** — how many turns the debate took, and the friend's agent ID (so the debate can be resumed per the jury-room rule below).
+6. **Turn count** — how many turns the debate took, and the friend's agent ID / Claude session ID (so the debate can be resumed per the jury-room rule below, and so a client can store it if desired).
 
 Keep the report scannable. Bullets over prose. The user should be able to read it in under a minute and decide whether to proceed, redirect, or dig in.
 
