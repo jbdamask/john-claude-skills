@@ -1,6 +1,9 @@
 ---
 name: phone-a-friend
 description: Spawn an Opus sub-agent in extended-thinking max-effort mode to debate, critique, and pressure-test the primary agent's current thinking through an unbounded multi-turn dialogue, terminating when the agents either reach genuine consensus or cleanly agree to disagree. Supports escalating clarifying questions to the human user mid-debate, and supports the user sending the debate back for another round (jury-room rule). Use when the user invokes "phone a friend", asks for a "second opinion", "sanity check", "debate this with another model", or otherwise signals they want rigorous adversarial review of an approach, plan, design, diagnosis, or decision before proceeding.
+metadata:
+   prerequisite: "Enable agent teams in settings.json"
+   reference: "https://code.claude.com/docs/en/agent-teams#enable-agent-teams"
 ---
 
 # Phone a Friend
