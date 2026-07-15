@@ -1,13 +1,13 @@
 ---
 name: sefam
-description: Produces a concise, plain-language write-up of a technical subject that a smart but non-technical reader (like a manager) can fully understand — no jargon, but not dumbed down — and delivers it as a great-looking styled web page (an Artifact). SEFAM means "Simple Enough For A Manager". Works on either a technical CHANGE (a PR, diff, commit, bug fix, GitHub issue) or a technical CONCEPT in a repo (a function, a process/workflow, an architecture, a system, a service, a design decision). Use when the user says "sefam", "SEFAM", "explain this simply", "simple enough for a manager", "explain this to a non-technical person", "manager-friendly summary", "plain-English explanation", "explain it like I'm not an engineer", "de-jargon this", or asks to explain how some function/process/architecture/system works for a non-technical audience.
+description: Produces a concise, plain-language write-up of a technical subject that a smart but non-technical reader (like a manager) can fully understand — no jargon, but not dumbed down — and delivers it as a great-looking styled web page (an Artifact) by default, or as plain markdown if the user prefers. SEFAM means "Simple Enough For A Manager". Works on either a technical CHANGE (a PR, diff, commit, bug fix, GitHub issue) or a technical CONCEPT in a repo (a function, a process/workflow, an architecture, a system, a service, a design decision). Use when the user says "sefam", "SEFAM", "explain it like I'm not an engineer", or asks to explain how some function/process/architecture/system works for a non-technical audience.
 ---
 
 # SEFAM — Simple Enough For A Manager
 
 Your job: take a technical subject and produce a short, plain-language write-up that a smart but NON-technical reader (e.g. a manager) can fully understand, and deliver it as a great-looking styled web page. No jargon, but never dumbed down. Respect the reader's intelligence.
 
-**The deliverable is a web page (an Artifact), not chat text.** Do all the thinking and drafting below, then publish the finished write-up as a styled HTML page using one of the visual styles in step 8. Everything about the *content* — plain language, no jargon, no invented facts — still applies exactly; the page is how it's presented, not an excuse to pad it.
+**Before anything else, ask the user which format they want (step 0).** The default and preferred deliverable is a styled web page (an Artifact) — but the user may choose plain markdown instead, so ask first and honor the answer. When it's a web page, do all the thinking and drafting below, then publish the finished write-up as a styled HTML page using one of the visual styles in step 8. Everything about the *content* — plain language, no jargon, no invented facts — applies exactly the same either way; the page is how it's presented, not an excuse to pad it.
 
 The subject can be either:
 - **A change** — a PR, diff, commit, bug fix, or issue (something that happened or is being done).
@@ -18,6 +18,14 @@ The method below covers both. Figure out which kind you're dealing with, then us
 ## Method
 
 Follow these steps every time.
+
+### 0. Ask which format — do this FIRST, every time
+Before reading anything or drafting, ask the user how they want the result delivered. This step is not optional and is not overridden by anything else in this skill: even though a web page is the preferred default, you must still ask. Two things to settle:
+
+1. **Web page or plain markdown?** If they want a web page, tell them the style options (the catalog in step 8) so they can pick one or let you choose. If they want markdown, skip step 8 and output the write-up as markdown.
+2. **If a web page: local HTML file, or a shareable Claude Artifact?** A *local HTML file* is written to disk (their machine) and stays private — nothing is published. A *shareable Claude Artifact* is published to claude.ai and gets a URL they can send to others. Default to the shareable Artifact unless they choose the file.
+
+Do not start step 1 until you have the answers.
 
 ### 1. Get the facts first — never hand-wave
 Identify exactly what you're explaining, and READ IT before writing. Match the source to the subject:
@@ -100,8 +108,8 @@ Aim for something readable in under a minute. Short paragraphs and a small numbe
 ### 7. Optional technical footer
 You may add a single line at the end pointing engineers to the PR/issue/commit/file — clearly separated from the plain-language part (e.g. "For engineers: see PR #123" or "For engineers: see `src/merge/worker.py`"). Keep the main body jargon-free regardless. On the page, render this as small, muted text in a footer, visually set apart from the body.
 
-### 8. Build it as a styled web page (the deliverable)
-Once the write-up is right, publish it as a self-contained HTML Artifact. The content rules above are non-negotiable; the styling makes it something a manager is glad to open.
+### 8. Build it as a styled web page (when the user chose a web page in step 0)
+If the user asked for markdown in step 0, skip this step and deliver the write-up as markdown. Otherwise, once the write-up is right, publish it as a self-contained HTML Artifact. The content rules above are non-negotiable; the styling makes it something a manager is glad to open.
 
 **Pick a style that fits, then say so.** Choose the one visual style from the catalog below that best suits the subject and tone, and tell the user which you picked and why in one short line (e.g. "Rendered in *Academic Scholar* — it suits a careful architecture explainer"). The user can name a different style and you re-render. Rough fit guide: serious/architectural → Academic Scholar or Earth Tones; bold announcement or exec summary → Vintage Travel Poster; blunt technical honesty → Neo-brutalist; modern product/UI → Glassmorphism; warm or human-scale → Miyazaki Sketchbook; celebratory/high-energy/internal-fun → sefam (the signature style). When nothing stands out, default to **Academic Scholar** — it's the safe, credible choice for a manager audience.
 
@@ -118,7 +126,9 @@ Once the write-up is right, publish it as a self-contained HTML Artifact. The co
 | **sefam** (signature) | Maximalist joyful anime/manga poster | `references/sefam.md` |
 
 **How to build it:**
-1. Load the `artifact-design` skill first (the Artifact tool requires it), read the chosen style's prompt file in `references/`, then write the page to a file and publish it with the Artifact tool. Put the file in the scratchpad directory unless the user names a location.
+1. Load the `artifact-design` skill first (it applies to both delivery modes), read the chosen style's prompt file in `references/`, then write the page to an HTML file. Put the file in the scratchpad directory unless the user names a location. Then deliver it per the choice from step 0:
+   - **Shareable Claude Artifact** (default): publish the file with the Artifact tool to get a claude.ai URL.
+   - **Local HTML file**: leave it as a file on disk and give the user the path — do NOT publish it with the Artifact tool, since that would put it on claude.ai. The same self-contained, CSP-safe build rules below still apply so the file opens correctly in a browser.
 2. One `<h1>` for the subject, then the SEFAM sections as headed blocks (What broke/What it is, Why, What this fixes/How it works, Bottom line, Honest caveat). The numbered list stays a real `<ol>`. Keep it to one screen or a short scroll — the under-a-minute read still holds; a page is not license to inflate.
 3. Fully self-contained: inline all CSS, embed any texture/pattern as CSS or a data URI, no external fonts/scripts/images (the Artifact CSP blocks them). Use a common web-safe or system font stack that evokes the style rather than loading a webfont.
 4. Responsive and legible: real body-text size (~1.1rem), comfortable line length (~60–70ch), enough contrast to read. A distinctive style must not cost readability — a manager has to be able to actually read it.
