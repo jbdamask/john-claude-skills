@@ -1,11 +1,13 @@
 ---
 name: sefam
-description: Produces a concise, plain-language write-up of a technical subject that a smart but non-technical reader (like a manager) can fully understand — no jargon, but not dumbed down. SEFAM means "Simple Enough For A Manager". Works on either a technical CHANGE (a PR, diff, commit, bug fix, GitHub issue) or a technical CONCEPT in a repo (a function, a process/workflow, an architecture, a system, a service, a design decision). Use when the user says "sefam", "SEFAM", "explain this simply", "simple enough for a manager", "explain this to a non-technical person", "manager-friendly summary", "plain-English explanation", "explain it like I'm not an engineer", "de-jargon this", or asks to explain how some function/process/architecture/system works for a non-technical audience.
+description: Produces a concise, plain-language write-up of a technical subject that a smart but non-technical reader (like a manager) can fully understand — no jargon, but not dumbed down — and delivers it as a great-looking styled web page (an Artifact). SEFAM means "Simple Enough For A Manager". Works on either a technical CHANGE (a PR, diff, commit, bug fix, GitHub issue) or a technical CONCEPT in a repo (a function, a process/workflow, an architecture, a system, a service, a design decision). Use when the user says "sefam", "SEFAM", "explain this simply", "simple enough for a manager", "explain this to a non-technical person", "manager-friendly summary", "plain-English explanation", "explain it like I'm not an engineer", "de-jargon this", or asks to explain how some function/process/architecture/system works for a non-technical audience.
 ---
 
 # SEFAM — Simple Enough For A Manager
 
-Your job: take a technical subject and produce a short, plain-language write-up that a smart but NON-technical reader (e.g. a manager) can fully understand. No jargon, but never dumbed down. Respect the reader's intelligence.
+Your job: take a technical subject and produce a short, plain-language write-up that a smart but NON-technical reader (e.g. a manager) can fully understand, and deliver it as a great-looking styled web page. No jargon, but never dumbed down. Respect the reader's intelligence.
+
+**The deliverable is a web page (an Artifact), not chat text.** Do all the thinking and drafting below, then publish the finished write-up as a styled HTML page using one of the visual styles in step 8. Everything about the *content* — plain language, no jargon, no invented facts — still applies exactly; the page is how it's presented, not an excuse to pad it.
 
 The subject can be either:
 - **A change** — a PR, diff, commit, bug fix, or issue (something that happened or is being done).
@@ -31,6 +33,8 @@ For a **concept**:
 - An architecture or system: read the design docs / README / ADRs first, then confirm against the code. For a broad or unfamiliar codebase, use an Explore agent to map it before writing.
 
 If the user did NOT point you at anything specific, ask them what to explain. Do not guess.
+
+**Only state facts you can trace to the source.** Every specific claim — a number, a dollar amount, a timeframe, how long something took to build, how often something happens, how many users are affected — must come from the material you read (the diff, the code, the docs, the issue) or from something the user told you. Do NOT invent them to make the write-up more concrete or more compelling. If you don't know how long a feature took to build, don't say "a few days." If you don't know the cost, don't name one. A plausible-sounding fabricated detail is worse than a missing one — it destroys the reader's trust the moment they catch it. When a detail would strengthen the explanation but you don't have it, either leave it out or say plainly what you don't know (e.g. "the exact cost isn't recorded here"). Analogies are fine and expected; invented facts are not — keep the two clearly distinct.
 
 ### 2. Write for a smart non-technical reader
 - Everyday language and analogies. Zero unexplained jargon.
@@ -84,7 +88,7 @@ Plain language is not the same as slop. As you draft, avoid the tells that finge
 - End on substance, not a summary flourish like "By understanding this, you can see why it matters."
 
 **Substance**
-- Be specific: name real numbers, real components, real outcomes. Never lean on "research shows" or vague authority.
+- Be specific: name real numbers, real components, real outcomes — but only ones you can trace to the source (see step 1). Being specific is not license to invent. Never manufacture a number, cost, timeframe, or effort estimate to sound concrete, and never lean on "research shows" or vague authority.
 - Anchor every "this / that / these" to a clear referent. If "this" could point to three things, name the one you mean.
 - Every sentence must inform a reader who doesn't already know the answer. A grammatically fluent sentence that teaches nothing is still slop.
 
@@ -94,11 +98,41 @@ This is not license to write flat, hedged, or voiceless prose. The target is wri
 Aim for something readable in under a minute. Short paragraphs and a small numbered list beat walls of text. Every sentence earns its place: if cutting it doesn't make the write-up worse, cut it.
 
 ### 7. Optional technical footer
-You may add a single line at the end pointing engineers to the PR/issue/commit/file — clearly separated from the plain-language part (e.g. "For engineers: see PR #123" or "For engineers: see `src/merge/worker.py`"). Keep the main body jargon-free regardless.
+You may add a single line at the end pointing engineers to the PR/issue/commit/file — clearly separated from the plain-language part (e.g. "For engineers: see PR #123" or "For engineers: see `src/merge/worker.py`"). Keep the main body jargon-free regardless. On the page, render this as small, muted text in a footer, visually set apart from the body.
+
+### 8. Build it as a styled web page (the deliverable)
+Once the write-up is right, publish it as a self-contained HTML Artifact. The content rules above are non-negotiable; the styling makes it something a manager is glad to open.
+
+**Pick a style that fits, then say so.** Choose the one visual style from the catalog below that best suits the subject and tone, and tell the user which you picked and why in one short line (e.g. "Rendered in *Academic Scholar* — it suits a careful architecture explainer"). The user can name a different style and you re-render. Rough fit guide: serious/architectural → Academic Scholar or Earth Tones; bold announcement or exec summary → Vintage Travel Poster or De Stijl; blunt technical honesty → Brutalist or Neo-brutalist; modern product/UI → Glassmorphism; warm or human-scale → Miyazaki Sketchbook or mellowkenneth-sketch; playful/internal-fun → Kids Starface or Tactile Maximalism. When nothing stands out, default to **Academic Scholar** — it's the safe, credible choice for a manager audience.
+
+**How to build it:**
+1. Load the `artifact-design` skill first (the Artifact tool requires it), then write the page to a file and publish it with the Artifact tool. Put the file in the scratchpad directory unless the user names a location.
+2. One `<h1>` for the subject, then the SEFAM sections as headed blocks (What broke/What it is, Why, What this fixes/How it works, Bottom line, Honest caveat). The numbered list stays a real `<ol>`. Keep it to one screen or a short scroll — the under-a-minute read still holds; a page is not license to inflate.
+3. Fully self-contained: inline all CSS, embed any texture/pattern as CSS or a data URI, no external fonts/scripts/images (the Artifact CSP blocks them). Use a common web-safe or system font stack that evokes the style rather than loading a webfont.
+4. Responsive and legible: real body-text size (~1.1rem), comfortable line length (~60–70ch), enough contrast to read. A distinctive style must not cost readability — a manager has to be able to actually read it.
+5. Set a stable `<title>`, pass a one-line `description`, and a fitting `favicon` emoji. Don't change the favicon on re-renders of the same write-up.
+
+**Style catalog** (opinionated single-look designs — commit to one; most are deliberately light- or dark-only, so don't force theme-switching):
+
+| Style | Feel | Palette / type / treatment |
+|---|---|---|
+| **Academic Scholar** | Scholarly serif on parchment + charcoal | Warm off-white/parchment background, charcoal text, one deep accent (oxblood or navy). Serif body (Georgia/"Times New Roman"). Generous margins, drop-cap or small-caps section heads, hairline rules. Calm and credible. |
+| **Brutalist** | Raw, honest, deliberately anti-aesthetic | Stark white, black text, no rounded corners, no shadows. Monospace or system-sans. Heavy visible borders, exposed structure, one loud accent used sparingly. Left-aligned, unapologetic. |
+| **Neo-brutalist** | Raw, nostalgic, intentionally disruptive | Brutalist bones but playful: thick black borders, hard offset drop-shadows (e.g. `box-shadow: 6px 6px 0 #000`), saturated blocky fills (electric blue, hot pink, yellow). Chunky sans headings. |
+| **De Stijl** | Mondrian: primary blocks on a black grid | White field, thick black gridlines, blocks of primary red/blue/yellow. Geometric sans (Futura-like stack). Asymmetric rectangular layout; color blocks frame sections. Bold and orderly. |
+| **Earth Tones** | Warm linen + amber editorial | Linen/cream background, warm browns and amber, muted sage accent. Serif or humanist-sans body. Editorial magazine feel — soft, grown-up, unhurried. |
+| **Kids Starface** | Y2K candy-rave maximalism, loud and fun | Bright gradients, candy pinks/purples/cyans, stars and sparkles (CSS shapes/emoji), chunky rounded rounded shapes. Playful display font stack. High energy — for internal/fun audiences, not board decks. |
+| **Tactile Maximalism** | Risograph indie print studio | Limited riso ink palette (2–3 flat overprinting colors like fluoro-pink + blue), visible grain/halftone (CSS noise or SVG pattern), slight misregistration offsets. Bold indie-print character. |
+| **Vintage Travel Poster** | WPA-era flat lithography | Flat blocky shapes, limited muted-but-rich palette (mustard, teal, brick, cream), strong condensed display headings, subtle paper grain. Confident poster hierarchy — great for announcements. |
+| **Miyazaki Sketchbook** | Hayao Miyazaki storyboard | Soft watercolor-wash background (gentle CSS gradients), sky-blues and greens, hand-drawn feel, gentle rounded shapes, airy whitespace. Warm, calm, human. |
+| **Glassmorphism** | Apple-inspired translucent depth | Soft colorful blurred background, frosted translucent cards (`backdrop-filter: blur`), thin light borders, layered depth, rounded corners. Modern system-sans. Clean and premium. |
+| **mellowkenneth-sketch** | Organic wobbly hand-made | Off-white paper texture, hand-drawn wobbly borders (irregular `border-radius`, slight rotations), handwritten-style font stack, playful imperfection. Warm and personal. |
+
+When the user asks for a style you don't have listed, build a tasteful interpretation of what they asked for rather than refusing — the catalog is a starting set, not a hard limit.
 
 ## Reference examples (the target quality/voice)
 
-These are the gold standard for tone, structure, and level of translation. Match them.
+These are the gold standard for tone, structure, and level of translation — they model the *content* that goes onto the page. Match them, then render that content in the chosen style (step 8).
 
 ### Example A — explaining a change (a bug fix)
 
@@ -141,6 +175,10 @@ These are the gold standard for tone, structure, and level of translation. Match
 - Burying the impact or purpose under implementation detail — lead with what it means or what it's for.
 - Being condescending — the reader is smart, just not an engineer.
 - Overselling by hiding limitations or trade-offs — always include the honest caveat.
+- Inventing facts to sound concrete — a made-up development time ("the team spent a few days"), cost, user count, or frequency that isn't in the source. If you can't trace it to the material or the user, leave it out or say you don't know. Fabrication is the fastest way to lose the reader's trust.
 - Explaining a concept as a pile of parts with no throughline — give it one clear job and, where it helps, one analogy.
 - AI-slop tells: fingerprint words (delve, leverage, robust, seamless, streamline), bro-speak openers ("Here's the thing," "Let's unpack that"), mic-drop closers, self-answered rhetorical questions, and empty summary flourishes. Write like a sharp human, not a language model.
-- Going long — if it takes more than a minute to read, cut it.
+- Going long — if it takes more than a minute to read, cut it. A styled page is not permission to inflate the word count.
+- Letting the style hurt the reading: tiny text, poor contrast, or decoration that fights the words. The manager has to be able to read it comfortably.
+- Half-committing to a style — muddled visuals that don't clearly read as any one look. Pick one from the catalog and commit.
+- Loading external fonts, scripts, or images — the Artifact CSP blocks them and the page breaks. Everything inline or as a data URI.
