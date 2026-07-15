@@ -22,7 +22,7 @@ Follow these steps every time.
 ### 0. Ask which format — do this FIRST, every time
 Before reading anything or drafting, ask the user how they want the result delivered. This step is not optional and is not overridden by anything else in this skill: even though a web page is the preferred default, you must still ask. Two things to settle:
 
-1. **Web page or plain markdown?** If they want a web page, tell them the style options (the catalog in step 8) so they can pick one or let you choose. If they want markdown, skip step 8 and output the write-up as markdown.
+1. **Web page or plain markdown?** If they want a web page, tell them all style options (the catalog in step 8) so they can pick one or let you choose. If they want markdown, skip step 8 and output the write-up as markdown.
 2. **If a web page: local HTML file, or a shareable Claude Artifact?** A *local HTML file* is written to disk (their machine) and stays private — nothing is published. A *shareable Claude Artifact* is published to claude.ai and gets a URL they can send to others. Default to the shareable Artifact unless they choose the file.
 
 Do not start step 1 until you have the answers.
@@ -61,7 +61,7 @@ The technical "how" is secondary and mostly gets translated away.
 - **What broke / What this is** — the situation in one short paragraph.
 - **Why** — the underlying cause, with an analogy if it helps.
 - **What this fixes / does** — a short numbered list, each item a plain outcome.
-- **Bottom line** — one or two sentences on what changes for users or the business.
+- **What's compelling** — one or two sentences on what changes for users or the business.
 - **Honest caveat** — any real limitation, flagged plainly. This builds trust; never oversell.
 
 **For a concept:**
@@ -69,7 +69,7 @@ The technical "how" is secondary and mostly gets translated away.
 - **Why it matters** — what the business or user gets from it; what would happen without it.
 - **How it works** — the key steps or pieces, as a short numbered list, each in plain terms. Use an analogy for the whole thing where it helps.
 - **Bottom line** — one or two sentences a manager could repeat to someone else.
-- **Honest caveat** — any real limitation, trade-off, or known weak spot. Never oversell.
+- **Caveats** — any real limitation, trade-off, or known weak spot. Never oversell.
 
 ### 5. Write like a sharp human, not a language model
 Plain language is not the same as slop. As you draft, avoid the tells that fingerprint machine-written text — a manager can smell them, and they cost you credibility. Hold these in mind while composing, don't clean them up afterward:
@@ -89,7 +89,7 @@ Plain language is not the same as slop. As you draft, avoid the tells that finge
 
 **Rhetoric**
 - Open each sentence with the actual claim, not a transition. Banned openers: Notably, Importantly, Furthermore, Moreover, Consequently, Additionally, "It's worth noting that," "At its core," "At the end of the day," "The bottom line is" (as a filler phrase, not the labeled section).
-- No bro-speak declaratives: "Here's the thing," "Here's why that matters," "Let that sink in," "Think about that for a second," "The result? X," "Let's unpack that," "But here's the kicker." Just make the claim.
+- No bro-speak declaratives: "Here's the thing," "Here's why that matters," "Honestly," "Let that sink in," "Think about that for a second," "The result? X," "Let's unpack that," "But here's the kicker." Just make the claim.
 - No mic-drop lines — a lone dramatic sentence that adds no new information.
 - Don't preview or recap. Don't open a section by saying what you're about to say, or close it by restating what you just said. Say it once, well.
 - Don't pose a rhetorical question and answer it yourself. "It quietly ran up the bill," not "So why does this matter? Because it ran up the bill."
