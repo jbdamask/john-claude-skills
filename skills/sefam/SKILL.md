@@ -103,32 +103,28 @@ You may add a single line at the end pointing engineers to the PR/issue/commit/f
 ### 8. Build it as a styled web page (the deliverable)
 Once the write-up is right, publish it as a self-contained HTML Artifact. The content rules above are non-negotiable; the styling makes it something a manager is glad to open.
 
-**Pick a style that fits, then say so.** Choose the one visual style from the catalog below that best suits the subject and tone, and tell the user which you picked and why in one short line (e.g. "Rendered in *Academic Scholar* — it suits a careful architecture explainer"). The user can name a different style and you re-render. Rough fit guide: serious/architectural → Academic Scholar or Earth Tones; bold announcement or exec summary → Vintage Travel Poster or De Stijl; blunt technical honesty → Brutalist or Neo-brutalist; modern product/UI → Glassmorphism; warm or human-scale → Miyazaki Sketchbook or mellowkenneth-sketch; playful/internal-fun → Kids Starface or Tactile Maximalism. When nothing stands out, default to **Academic Scholar** — it's the safe, credible choice for a manager audience.
+**Pick a style that fits, then say so.** Choose the one visual style from the catalog below that best suits the subject and tone, and tell the user which you picked and why in one short line (e.g. "Rendered in *Academic Scholar* — it suits a careful architecture explainer"). The user can name a different style and you re-render. Rough fit guide: serious/architectural → Academic Scholar or Earth Tones; bold announcement or exec summary → Vintage Travel Poster; blunt technical honesty → Neo-brutalist; modern product/UI → Glassmorphism; warm or human-scale → Miyazaki Sketchbook; celebratory/high-energy/internal-fun → sefam (the signature style). When nothing stands out, default to **Academic Scholar** — it's the safe, credible choice for a manager audience.
+
+**Once you've picked a style, read its prompt file in `references/` and follow it when building the page.** Each style has a self-contained build prompt (palette, type, treatment) in its own file:
+
+| Style | Feel | Prompt file |
+|---|---|---|
+| **Academic Scholar** | Scholarly serif on parchment + charcoal | `references/academic-scholar.md` |
+| **Neo-brutalist** | Raw, nostalgic, intentionally disruptive | `references/neo-brutalist.md` |
+| **Earth Tones** | Warm linen + amber editorial | `references/earth-tones.md` |
+| **Vintage Travel Poster** | WPA-era flat lithography | `references/vintage-travel-poster.md` |
+| **Miyazaki Sketchbook** | Hayao Miyazaki storyboard | `references/miyazaki-sketchbook.md` |
+| **Glassmorphism** | Apple-inspired translucent depth | `references/glassmorphism.md` |
+| **sefam** (signature) | Maximalist joyful anime/manga poster | `references/sefam.md` |
 
 **How to build it:**
-1. Load the `artifact-design` skill first (the Artifact tool requires it), then write the page to a file and publish it with the Artifact tool. Put the file in the scratchpad directory unless the user names a location.
+1. Load the `artifact-design` skill first (the Artifact tool requires it), read the chosen style's prompt file in `references/`, then write the page to a file and publish it with the Artifact tool. Put the file in the scratchpad directory unless the user names a location.
 2. One `<h1>` for the subject, then the SEFAM sections as headed blocks (What broke/What it is, Why, What this fixes/How it works, Bottom line, Honest caveat). The numbered list stays a real `<ol>`. Keep it to one screen or a short scroll — the under-a-minute read still holds; a page is not license to inflate.
 3. Fully self-contained: inline all CSS, embed any texture/pattern as CSS or a data URI, no external fonts/scripts/images (the Artifact CSP blocks them). Use a common web-safe or system font stack that evokes the style rather than loading a webfont.
 4. Responsive and legible: real body-text size (~1.1rem), comfortable line length (~60–70ch), enough contrast to read. A distinctive style must not cost readability — a manager has to be able to actually read it.
 5. Set a stable `<title>`, pass a one-line `description`, and a fitting `favicon` emoji. Don't change the favicon on re-renders of the same write-up.
 
-**Style catalog** (opinionated single-look designs — commit to one; most are deliberately light- or dark-only, so don't force theme-switching):
-
-| Style | Feel | Palette / type / treatment |
-|---|---|---|
-| **Academic Scholar** | Scholarly serif on parchment + charcoal | Warm off-white/parchment background, charcoal text, one deep accent (oxblood or navy). Serif body (Georgia/"Times New Roman"). Generous margins, drop-cap or small-caps section heads, hairline rules. Calm and credible. |
-| **Brutalist** | Raw, honest, deliberately anti-aesthetic | Stark white, black text, no rounded corners, no shadows. Monospace or system-sans. Heavy visible borders, exposed structure, one loud accent used sparingly. Left-aligned, unapologetic. |
-| **Neo-brutalist** | Raw, nostalgic, intentionally disruptive | Brutalist bones but playful: thick black borders, hard offset drop-shadows (e.g. `box-shadow: 6px 6px 0 #000`), saturated blocky fills (electric blue, hot pink, yellow). Chunky sans headings. |
-| **De Stijl** | Mondrian: primary blocks on a black grid | White field, thick black gridlines, blocks of primary red/blue/yellow. Geometric sans (Futura-like stack). Asymmetric rectangular layout; color blocks frame sections. Bold and orderly. |
-| **Earth Tones** | Warm linen + amber editorial | Linen/cream background, warm browns and amber, muted sage accent. Serif or humanist-sans body. Editorial magazine feel — soft, grown-up, unhurried. |
-| **Kids Starface** | Y2K candy-rave maximalism, loud and fun | Bright gradients, candy pinks/purples/cyans, stars and sparkles (CSS shapes/emoji), chunky rounded rounded shapes. Playful display font stack. High energy — for internal/fun audiences, not board decks. |
-| **Tactile Maximalism** | Risograph indie print studio | Limited riso ink palette (2–3 flat overprinting colors like fluoro-pink + blue), visible grain/halftone (CSS noise or SVG pattern), slight misregistration offsets. Bold indie-print character. |
-| **Vintage Travel Poster** | WPA-era flat lithography | Flat blocky shapes, limited muted-but-rich palette (mustard, teal, brick, cream), strong condensed display headings, subtle paper grain. Confident poster hierarchy — great for announcements. |
-| **Miyazaki Sketchbook** | Hayao Miyazaki storyboard | Soft watercolor-wash background (gentle CSS gradients), sky-blues and greens, hand-drawn feel, gentle rounded shapes, airy whitespace. Warm, calm, human. |
-| **Glassmorphism** | Apple-inspired translucent depth | Soft colorful blurred background, frosted translucent cards (`backdrop-filter: blur`), thin light borders, layered depth, rounded corners. Modern system-sans. Clean and premium. |
-| **mellowkenneth-sketch** | Organic wobbly hand-made | Off-white paper texture, hand-drawn wobbly borders (irregular `border-radius`, slight rotations), handwritten-style font stack, playful imperfection. Warm and personal. |
-
-When the user asks for a style you don't have listed, build a tasteful interpretation of what they asked for rather than refusing — the catalog is a starting set, not a hard limit.
+The style prompts in `references/` are opinionated single-look designs — commit to one; most are deliberately light- or dark-only, so don't force theme-switching. When the user asks for a style not listed, build a tasteful interpretation of what they asked for rather than refusing — the catalog is a starting set, not a hard limit.
 
 ## Reference examples (the target quality/voice)
 
