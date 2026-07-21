@@ -14,6 +14,7 @@
       "description": "Development workflow tools: skills for devlog, mcp-scanner, cringephobe, architecture-decision-records, and more; plus agents like session-recap for context recovery",
       "source": "./",
       "strict": false,
+      "skills": ["./skills/"],
       "agents": ["./agents/session-recap.md"]
     },
     {
