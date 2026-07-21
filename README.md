@@ -1,5 +1,7 @@
 # John's Claude Code Skills
 
+<img src="john-claude-skills.png" alt="John's Claude Code Skills" width="686" height="686" />
+
 A collection of Claude Code skills for development workflows.
 
 ## Installation
