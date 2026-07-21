@@ -11,10 +11,8 @@
   "plugins": [
     {
       "name": "john-skills",
-      "description": "Development workflow tools: skills for devlog, mcp-scanner, cringephobe, architecture-decision-records, and more; plus agents like session-recap for context recovery",
-      "source": "./",
-      "strict": false,
-      "agents": ["./agents/session-recap.md"]
+      "source": "./plugins/john-skills",
+      "description": "Development workflow tools: skills for devlog, mcp-scanner, cringephobe, architecture-decision-records, and more; plus agents like session-recap for context recovery"
     },
     {
       "name": "context-analyzer",
