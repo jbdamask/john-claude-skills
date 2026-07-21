@@ -92,6 +92,7 @@ Any text editor opens it. This skill's default (stripped `.txt`) throws away the
 
 ## Notes
 
+- **Tested only on macOS.** The script has been exercised on Mac (including its default Bash 3.2) and not yet on Linux or Windows/WSL. It should work on any POSIX-ish `bash`, but treat non-Mac use as untested.
 - `yt-dlp` exits non-zero when `--break-match-filters` or `--max-downloads` trips; the script treats those as normal completion.
 - Duplicate-line removal is global within each file — adjacent scroll-in repeats are the target, but a genuinely repeated phrase elsewhere gets collapsed too. That's fine for reading.
 
