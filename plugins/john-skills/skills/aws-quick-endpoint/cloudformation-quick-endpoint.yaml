@@ -1,0 +1,303 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Quick API endpoint with Lambda (CRUD) and DynamoDB, secured by token auth
+
+Parameters:
+  ResourceName:
+    Type: String
+    Description: Resource name for API paths (e.g., pets, logs, records)
+    AllowedPattern: '[a-z][a-z0-9-]*'
+    ConstraintDescription: Must start with lowercase letter, only lowercase letters, numbers, and hyphens
+
+  AuthToken:
+    Type: String
+    Description: Bearer token for API authentication (passed in x-api-token header)
+    NoEcho: true
+    MinLength: 16
+
+  PartitionKey:
+    Type: String
+    Default: id
+    Description: Name of the DynamoDB partition key
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9_]*'
+    ConstraintDescription: Must start with a letter, only letters, numbers, and underscores
+
+  LambdaMemorySize:
+    Type: Number
+    Default: 256
+    Description: Lambda memory in MB
+    AllowedValues: [128, 256, 512, 1024]
+
+  LambdaTimeout:
+    Type: Number
+    Default: 30
+    Description: Lambda timeout in seconds
+    MinValue: 3
+    MaxValue: 300
+
+Resources:
+  # ---- DynamoDB Table ----
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${AWS::StackName}-${ResourceName}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: !Ref PartitionKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: !Ref PartitionKey
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-${ResourceName}'
+        - Key: ManagedBy
+          Value: aws-quick-endpoint
+
+  # ---- Lambda Execution Role ----
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-lambda-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Scan
+                  - dynamodb:Query
+                Resource: !GetAtt DynamoDBTable.Arn
+
+  # ---- Lambda Function ----
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-handler'
+      Runtime: python3.14
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: !Ref LambdaTimeout
+      MemorySize: !Ref LambdaMemorySize
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref DynamoDBTable
+          AUTH_TOKEN: !Ref AuthToken
+          PARTITION_KEY: !Ref PartitionKey
+      Code:
+        ZipFile: |
+          import json, os, uuid, base64
+          from datetime import datetime, timezone
+          from decimal import Decimal
+          import boto3
+
+          dynamodb = boto3.resource('dynamodb')
+          table = dynamodb.Table(os.environ['TABLE_NAME'])
+          AUTH_TOKEN = os.environ['AUTH_TOKEN']
+          PK = os.environ['PARTITION_KEY']
+
+          class DecimalEncoder(json.JSONEncoder):
+              def default(self, obj):
+                  if isinstance(obj, Decimal):
+                      return float(obj) if obj % 1 else int(obj)
+                  return super().default(obj)
+
+          def to_decimal(obj):
+              if isinstance(obj, float):
+                  return Decimal(str(obj))
+              if isinstance(obj, dict):
+                  return {k: to_decimal(v) for k, v in obj.items()}
+              if isinstance(obj, list):
+                  return [to_decimal(i) for i in obj]
+              return obj
+
+          def respond(code, body):
+              return {
+                  'statusCode': code,
+                  'headers': {
+                      'Content-Type': 'application/json',
+                      'Access-Control-Allow-Origin': '*'
+                  },
+                  'body': json.dumps(body, cls=DecimalEncoder)
+              }
+
+          def handler(event, context):
+              headers = {k.lower(): v for k, v in (event.get('headers') or {}).items()}
+              if headers.get('x-api-token', '') != AUTH_TOKEN:
+                  return respond(401, {'error': 'Unauthorized'})
+
+              method = event['requestContext']['http']['method']
+              params = event.get('pathParameters') or {}
+              qs = event.get('queryStringParameters') or {}
+
+              # LIST (paginated)
+              if method == 'GET' and 'id' not in params:
+                  kwargs = {'Limit': int(qs.get('limit', '25'))}
+                  if 'next_token' in qs:
+                      kwargs['ExclusiveStartKey'] = json.loads(
+                          base64.b64decode(qs['next_token']))
+                  result = table.scan(**kwargs)
+                  body = {'items': result['Items'], 'count': result['Count']}
+                  if 'LastEvaluatedKey' in result:
+                      body['next_token'] = base64.b64encode(
+                          json.dumps(result['LastEvaluatedKey']).encode()).decode()
+                  return respond(200, body)
+
+              # GET single
+              if method == 'GET':
+                  result = table.get_item(Key={PK: params['id']})
+                  if 'Item' not in result:
+                      return respond(404, {'error': 'Not found'})
+                  return respond(200, result['Item'])
+
+              # CREATE
+              if method == 'POST':
+                  item = to_decimal(json.loads(event.get('body') or '{}'))
+                  if PK not in item:
+                      item[PK] = str(uuid.uuid4())
+                  now = datetime.now(timezone.utc).isoformat()
+                  item['created_at'] = now
+                  item['updated_at'] = now
+                  table.put_item(Item=item)
+                  return respond(201, item)
+
+              # UPDATE
+              if method == 'PUT':
+                  item = to_decimal(json.loads(event.get('body') or '{}'))
+                  item[PK] = params['id']
+                  item['updated_at'] = datetime.now(timezone.utc).isoformat()
+                  existing = table.get_item(Key={PK: params['id']})
+                  if 'Item' in existing:
+                      item.setdefault('created_at',
+                          existing['Item'].get('created_at', ''))
+                  table.put_item(Item=item)
+                  return respond(200, item)
+
+              # DELETE
+              if method == 'DELETE':
+                  table.delete_item(Key={PK: params['id']})
+                  return respond(200, {'deleted': params['id']})
+
+              return respond(404, {'error': 'Not found'})
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-handler'
+        - Key: ManagedBy
+          Value: aws-quick-endpoint
+
+  # ---- API Gateway HTTP API ----
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub '${AWS::StackName}-api'
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - x-api-token
+
+  ApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationMethod: POST
+      IntegrationUri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations'
+      PayloadFormatVersion: '2.0'
+
+  # ---- Routes ----
+  ListRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: !Sub 'GET /${ResourceName}'
+      Target: !Sub 'integrations/${ApiIntegration}'
+
+  GetRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: !Sub 'GET /${ResourceName}/{id}'
+      Target: !Sub 'integrations/${ApiIntegration}'
+
+  CreateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: !Sub 'POST /${ResourceName}'
+      Target: !Sub 'integrations/${ApiIntegration}'
+
+  UpdateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: !Sub 'PUT /${ResourceName}/{id}'
+      Target: !Sub 'integrations/${ApiIntegration}'
+
+  DeleteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: !Sub 'DELETE /${ResourceName}/{id}'
+      Target: !Sub 'integrations/${ApiIntegration}'
+
+  # ---- Stage (auto-deploy) ----
+  ApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: '$default'
+      AutoDeploy: true
+
+  # ---- Lambda Permission for API Gateway ----
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*'
+
+Outputs:
+  ApiUrl:
+    Description: Base URL of the API
+    Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+
+  ResourceEndpoint:
+    Description: Full URL for the resource collection endpoint
+    Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/${ResourceName}'
+
+  TableName:
+    Description: DynamoDB table name
+    Value: !Ref DynamoDBTable
+
+  LambdaFunctionName:
+    Description: Lambda function name
+    Value: !Ref LambdaFunction
+
+  StackName:
+    Description: CloudFormation stack name (needed for cleanup)
+    Value: !Ref 'AWS::StackName'

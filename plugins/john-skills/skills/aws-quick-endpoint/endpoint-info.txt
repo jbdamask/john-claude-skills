@@ -1,0 +1,25 @@
+AWS Quick Endpoint - skill-usage
+=================================
+Stack Name:     quick-ep-skill-usage-aws-sandbox-20260319-133426
+AWS Profile:    sandbox
+Region:         us-east-1
+Resource:       skill-usage
+Partition Key:  id
+
+API URL:        https://uk7egppwa4.execute-api.us-east-1.amazonaws.com
+Endpoint:       https://uk7egppwa4.execute-api.us-east-1.amazonaws.com/skill-usage
+Auth Token:     1b94c03e-1179-4716-9bd2-dda42213d5fb
+DynamoDB Table: quick-ep-skill-usage-aws-sandbox-20260319-133426-skill-usage
+Lambda:         quick-ep-skill-usage-aws-sandbox-20260319-133426-handler
+
+Usage:
+  Header: x-api-token: 1b94c03e-1179-4716-9bd2-dda42213d5fb
+
+  POST   /skill-usage        - Create record
+  GET    /skill-usage         - List (paginated: ?limit=N&next_token=TOKEN)
+  GET    /skill-usage/{id}    - Get single
+  PUT    /skill-usage/{id}    - Update
+  DELETE /skill-usage/{id}    - Delete
+
+Cleanup:
+  aws cloudformation delete-stack --profile sandbox --stack-name quick-ep-skill-usage-aws-sandbox-20260319-133426

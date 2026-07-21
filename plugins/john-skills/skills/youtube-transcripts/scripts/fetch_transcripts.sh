@@ -62,7 +62,7 @@ yt-dlp "$URL" \
   --sub-langs "en" \
   --convert-subs srt \
   -o "%(upload_date)s - %(title)s.%(ext)s" \
-  "${MAX_ARG[@]}" || true
+  "${MAX_ARG[@]+"${MAX_ARG[@]}"}" || true
 
 shopt -s nullglob
 srts=(*.en.srt)
