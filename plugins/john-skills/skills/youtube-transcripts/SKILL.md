@@ -12,8 +12,9 @@ description: >
 # YouTube Channel Transcripts
 
 Downloads English auto-caption transcripts for a channel's videos in a given
-date range and leaves one readable file per video: timestamped markdown `.md`
-by default, or plain `.txt` with `--no-timestamps`.
+date range and leaves one markdown file per video, with frontmatter linking it
+back to the source video. Lines are timestamped by default; `--no-timestamps`
+drops the times and leaves the prose.
 
 ## Requirements
 
@@ -28,23 +29,38 @@ If missing on macOS: `brew install yt-dlp ffmpeg`.
 ## Parameters
 
 - **channel_url** (required) — channel URL, e.g. `https://www.youtube.com/@AIDailyBrief/videos`. The `/videos` suffix is added automatically if absent.
-- **start** (required) — inclusive start date, `YYYYMMDD`.
-- **end** (required) — inclusive end date, `YYYYMMDD`.
+- **start** — inclusive start date, `YYYYMMDD`. Defaults to 7 days ago.
+- **end** — inclusive end date, `YYYYMMDD`. Defaults to today.
 - **max** (optional) — cap on number of transcripts.
-- **--no-timestamps** (optional flag, goes first) — drop the timestamps and frontmatter, writing plain `.txt` instead of `.md`. Only worth it when the text is headed somewhere that can't use them.
-- **--chunk N** (optional flag, goes first) — group the text into ~N-second paragraphs instead of one timestamped line per caption line. `--chunk 30` reads well as prose; the default (one line per caption line) is better for grepping and citing exact moments. Ignored with `--no-timestamps`.
+- **--no-timestamps** (optional flag, goes first) — omit the `[HH:MM:SS]` prefixes. Still markdown, still with the same frontmatter; only the per-line times go away.
+- **--chunk N** (optional flag, goes first) — group the text into ~N-second paragraphs instead of one line per caption line. `--chunk 30` reads well as prose; the default is better for grepping and citing exact moments. Combines with `--no-timestamps` for plain paragraphs.
 
-Timestamped markdown is the default — don't pass a flag for it. The raw `.srt`
-is always post-processed and never left behind either way.
+Timestamps are the default — don't pass a flag for them. Output is always `.md`,
+and the intermediate `.srt` is never left behind.
 
-Ask the user for any of the three required values that aren't given. Convert
-natural-language ranges yourself ("July 2026" → `20260701` `20260731`).
+Ask the user for the channel URL if it isn't given.
+
+**If the request has no date range, ask for one before running.** An active
+channel can have thousands of videos, and a request that doesn't mention dates
+is far more likely to be an oversight than a request for the entire back
+catalog. Offer the last 7 days as the default and let the user widen it. Only
+skip the question when the user has already stated a range, said something like
+"everything" or "all of it", or already declined to narrow it.
+
+Convert natural-language ranges yourself ("July 2026" → `20260701` `20260731`,
+"last month", "since May"). Look up today's date rather than assuming it.
+
+The script applies the same 7-day default on its own if dates are omitted, so a
+forgotten range can't turn into a full-catalog download — but ask first rather
+than relying on that.
 
 ## Usage
 
 ```bash
-scripts/fetch_transcripts.sh [--no-timestamps] [--chunk N] <channel_url> <start_YYYYMMDD> <end_YYYYMMDD> [max]
+scripts/fetch_transcripts.sh [--no-timestamps] [--chunk N] <channel_url> [start_YYYYMMDD] [end_YYYYMMDD] [max]
 ```
+
+Omitting the dates fetches the last 7 days and says so.
 
 Example — all July 2026 videos from AI Daily Brief, as timestamped markdown:
 
@@ -64,16 +80,15 @@ Example — timestamps grouped into 30-second paragraphs:
 scripts/fetch_transcripts.sh --chunk 30 "https://www.youtube.com/@AIDailyBrief/videos" 20260701 20260731
 ```
 
-Example — plain text, no timestamps:
+Example — prose without timestamps:
 
 ```bash
 scripts/fetch_transcripts.sh --no-timestamps "https://www.youtube.com/@AIDailyBrief/videos" 20260701 20260731
 ```
 
-Output lands in the current directory as `YYYYMMDD - Title [VIDEOID].md`, or
-`YYYYMMDD - Title [VIDEOID].en.txt` with `--no-timestamps`. The video ID is kept
-in the filename so a transcript can always be traced back to its source; the
-`.md` also carries it in YAML frontmatter:
+Output lands in the current directory as `YYYYMMDD - Title [VIDEOID].md`. The
+video ID is kept in the filename so a transcript can always be traced back to
+its source, and every file carries it in YAML frontmatter regardless of mode:
 
 ```markdown
 ---
@@ -91,7 +106,9 @@ Link to any moment: `https://www.youtube.com/watch?v=lmQqiWQF_8I&t=<seconds>s`
 [00:00:02] actually just get a fable level open
 ```
 
-or, with `--chunk 30`, one timestamped paragraph per 30 seconds.
+With `--chunk 30`, one paragraph per 30 seconds instead of one line per caption
+line. With `--no-timestamps`, the same file minus the `[HH:MM:SS]` prefixes and
+the deep-link hint — the frontmatter is unchanged.
 
 To deep-link a quote, convert its `[HH:MM:SS]` to seconds and append
 `&t=<seconds>s` to the `url` from the frontmatter — no lookup or web search

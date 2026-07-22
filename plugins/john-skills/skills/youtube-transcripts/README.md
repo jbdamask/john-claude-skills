@@ -1,14 +1,32 @@
 # YouTube Channel Transcripts
 
-Download transcripts for a YouTube channel's videos within a date range. The skill grabs English auto-captions and, by default, strips timestamps and the duplicate scroll-in lines to leave one readable `.txt` per video. Stripping is optional — pass `--keep-timestamps` to keep the raw `.srt` instead.
+Download transcripts for a YouTube channel's videos within a date range. You get one markdown file per video, timestamped and linked back to the source.
 
 ## What it does
 
-- Walks a channel's uploads (newest-first) and pulls only the videos whose upload date falls inside your range — it does **not** scan the whole back catalog.
-- Downloads English auto-captions and converts them to SRT.
-- **By default**, strips timestamp lines, index numbers, and repeated scrolling-caption lines, writing one clean `YYYYMMDD - Title.en.txt` per video.
-- **With `--keep-timestamps`**, skips the stripping and leaves the raw `YYYYMMDD - Title.en.srt` (timestamps and index lines intact) instead.
-- Output lands in the current directory.
+- Walks a channel's uploads and pulls only the videos whose upload date falls inside your range — it does **not** scan the whole back catalog.
+- Writes one `YYYYMMDD - Title [VIDEOID].md` per video into the current directory.
+- Leaves any files that were already in that directory untouched.
+
+Each file looks like this:
+
+```markdown
+---
+title: Is Kimi K3 Really Fable Class
+date: 20260721
+video_id: lmQqiWQF_8I
+url: https://www.youtube.com/watch?v=lmQqiWQF_8I
+---
+
+# Is Kimi K3 Really Fable Class
+
+Link to any moment: `https://www.youtube.com/watch?v=lmQqiWQF_8I&t=<seconds>s`
+
+[00:00:00] Today on the AI Daily Brief, did we
+[00:00:02] actually just get a fable level open
+```
+
+To link a quote, convert its `[HH:MM:SS]` to seconds and append `&t=<seconds>s` to the frontmatter `url`.
 
 ## Prerequisites
 
@@ -27,7 +45,7 @@ Download transcripts for a YouTube channel's videos within a date range. The ski
   ```
 
 - A `bash` shell (the script uses `set -euo pipefail`, arrays, and `shopt`).
-- Network access to YouTube. Videos without English auto-captions are silently skipped.
+- Network access to YouTube. Videos without English auto-captions are skipped.
 
 > Tip: keep `yt-dlp` current (`brew upgrade yt-dlp`) — YouTube changes break older versions.
 
@@ -39,21 +57,25 @@ Ask for transcripts in natural language, e.g.:
 - "get the captions from this channel for last month"
 - "pull transcripts between two dates"
 
-The skill needs three things and will ask for any that are missing:
-
-- **channel_url** — e.g. `https://www.youtube.com/@AIDailyBrief/videos` (the `/videos` suffix is added automatically).
-- **start** — inclusive start date, `YYYYMMDD`.
-- **end** — inclusive end date, `YYYYMMDD`.
+- **channel_url** — e.g. `https://www.youtube.com/@AIDailyBrief/videos` (the `/videos` suffix is added automatically). You'll be asked for this if you don't give it.
+- **start** and **end** — inclusive date bounds, `YYYYMMDD`. If your request doesn't mention a date range you'll be asked for one, since a busy channel can hold thousands of videos. The default is the last 7 days.
 
 Optional:
 
 - **max** — cap on the number of transcripts.
-- **`--keep-timestamps`** — keep raw `.srt` files (timestamps + index lines) instead of stripping to plain `.txt`. Goes first.
+- **`--no-timestamps`** — leave out the `[HH:MM:SS]` prefixes. Goes first.
+- **`--chunk N`** — group the text into ~N-second paragraphs rather than one line per caption line. Reads better as prose; harder to cite a precise moment from. Goes first.
 
 ## Running the script directly
 
 ```bash
-scripts/fetch_transcripts.sh [--keep-timestamps] <channel_url> <start_YYYYMMDD> <end_YYYYMMDD> [max]
+scripts/fetch_transcripts.sh [--no-timestamps] [--chunk N] <channel_url> [start_YYYYMMDD] [end_YYYYMMDD] [max]
+```
+
+Last 7 days (the dates are optional):
+
+```bash
+scripts/fetch_transcripts.sh "https://www.youtube.com/@AIDailyBrief/videos"
 ```
 
 All July 2026 videos from AI Daily Brief:
@@ -68,32 +90,16 @@ At most 5 transcripts:
 scripts/fetch_transcripts.sh "https://www.youtube.com/@AIDailyBrief/videos" 20260701 20260731 5
 ```
 
-Keep raw `.srt` with timestamps:
+Prose in 30-second paragraphs, no timestamps:
 
 ```bash
-scripts/fetch_transcripts.sh --keep-timestamps "https://www.youtube.com/@AIDailyBrief/videos" 20260701 20260731
+scripts/fetch_transcripts.sh --no-timestamps --chunk 30 "https://www.youtube.com/@AIDailyBrief/videos" 20260701 20260731
 ```
-
-## What's an `.srt` file?
-
-`.srt` (SubRip Subtitle) is the plain-text file format subtitles ship in. It's just numbered caption blocks — an index, a start/end timestamp, and the line of text — like this:
-
-```
-1
-00:00:01,000 --> 00:00:04,000
-Welcome back to the show.
-
-2
-00:00:04,200 --> 00:00:07,500
-Today we're talking about AI.
-```
-
-Any text editor opens it. This skill's default (stripped `.txt`) throws away the numbers and timestamps and keeps only the words, which is what you want for reading or feeding into another tool. Use `--keep-timestamps` when you actually need to know *when* something was said — e.g. clipping video or linking to a moment.
 
 ## Notes
 
 - **Tested only on macOS.** The script has been exercised on Mac (including its default Bash 3.2) and not yet on Linux or Windows/WSL. It should work on any POSIX-ish `bash`, but treat non-Mac use as untested.
-- `yt-dlp` exits non-zero when `--break-match-filters` or `--max-downloads` trips; the script treats those as normal completion.
-- Duplicate-line removal is global within each file — adjacent scroll-in repeats are the target, but a genuinely repeated phrase elsewhere gets collapsed too. That's fine for reading.
+- Transcripts come from YouTube's automatic captions, so expect the occasional misheard word — proper nouns especially.
+- `yt-dlp` exits non-zero when it stops early at a date boundary or download cap; the script treats those as normal completion.
 
 See [`SKILL.md`](./SKILL.md) for the full parameter reference and internals.

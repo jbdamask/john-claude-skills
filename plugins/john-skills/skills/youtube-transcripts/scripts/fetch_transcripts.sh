@@ -3,16 +3,16 @@
 # and write timestamped markdown.
 #
 # Usage:
-#   fetch_transcripts.sh [--no-timestamps] [--chunk N] <channel_url> <start_YYYYMMDD> <end_YYYYMMDD> [max]
+#   fetch_transcripts.sh [--no-timestamps] [--chunk N] <channel_url> [start_YYYYMMDD] [end_YYYYMMDD] [max]
 #
 # Args:
-#   --no-timestamps    optional; drop the timestamps and frontmatter, writing
-#                      plain .txt instead of .md
+#   --no-timestamps    optional; omit the [HH:MM:SS] prefixes (still markdown,
+#                      still with frontmatter)
 #   --chunk N          optional; group text into ~N-second paragraphs instead of
 #                      one timestamped line per caption line
 #   channel_url        e.g. https://www.youtube.com/@AIDailyBrief/videos
-#   start              inclusive lower bound, YYYYMMDD
-#   end                inclusive upper bound, YYYYMMDD
+#   start              inclusive lower bound, YYYYMMDD (default: 7 days ago)
+#   end                inclusive upper bound, YYYYMMDD (default: today)
 #   max                optional cap on number of transcripts (default: no cap)
 
 set -euo pipefail
@@ -32,15 +32,42 @@ case "$CHUNK" in
   ''|*[!0-9]*) echo "Error: --chunk must be a whole number of seconds" >&2; exit 1 ;;
 esac
 
-if [ "$#" -lt 3 ]; then
-  echo "Usage: $0 [--no-timestamps] [--chunk N] <channel_url> <start_YYYYMMDD> <end_YYYYMMDD> [max]" >&2
+if [ "$#" -lt 1 ]; then
+  echo "Usage: $0 [--no-timestamps] [--chunk N] <channel_url> [start_YYYYMMDD] [end_YYYYMMDD] [max]" >&2
   exit 1
 fi
 
 URL="$1"
-START="$2"
-END="$3"
+START="${2:-}"
+END="${3:-}"
 MAX="${4:-}"
+
+# A missing date range would otherwise mean "the entire channel". Fall back to
+# the last week instead -- a wrong guess costs a few files, not a back catalog.
+DEFAULT_DAYS=7
+
+days_ago() {
+  date -v-"$1"d +%Y%m%d 2>/dev/null || date -d "$1 days ago" +%Y%m%d
+}
+
+if [ -z "$START" ] || [ -z "$END" ]; then
+  [ -n "$START" ] || START="$(days_ago "$DEFAULT_DAYS")"
+  [ -n "$END" ] || END="$(date +%Y%m%d)"
+  echo ">> No date range given; defaulting to the last $DEFAULT_DAYS days ($START..$END)."
+  echo ">> Pass explicit dates to widen it."
+fi
+
+for d in "$START" "$END"; do
+  case "$d" in
+    [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) : ;;
+    *) echo "Error: dates must be YYYYMMDD (got '$d')" >&2; exit 1 ;;
+  esac
+done
+
+if [ "$START" -gt "$END" ]; then
+  echo "Error: start date $START is after end date $END" >&2
+  exit 1
+fi
 
 # Normalize to the /videos tab so we get the channel's uploads newest-first.
 case "$URL" in
@@ -112,45 +139,39 @@ if [ "${#srts[@]}" -eq 0 ]; then
   exit 0
 fi
 
-if [ "$STRIP" -eq 0 ]; then
-  AWK_PROG="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/srt_to_md.awk"
+AWK_PROG="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/srt_to_md.awk"
+
+if [ "$STRIP" -eq 1 ]; then
+  echo ">> Converting ${#srts[@]} file(s) to .md (no timestamps)..."
+else
   echo ">> Converting ${#srts[@]} file(s) to timestamped .md..."
-  mds=()
-  for f in "${srts[@]}"; do
-    base="${f%.en.srt}"
-    date_part="${base%% - *}"
-    title="${base#* - }"
-    # yt-dlp appends " [VIDEOID]" via the -o template; peel it back off.
-    vid="${title##*\[}"; vid="${vid%\]}"
-    title="${title% \[*\]}"
-    {
-      printf -- '---\ntitle: %s\n' "$title"
-      if [ "$date_part" != "$base" ]; then
-        printf 'date: %s\n' "$date_part"
-      fi
-      printf 'video_id: %s\nurl: https://www.youtube.com/watch?v=%s\n' "$vid" "$vid"
-      printf -- '---\n\n# %s\n\n' "$title"
-      printf 'Link to any moment: `https://www.youtube.com/watch?v=%s&t=<seconds>s`\n\n' "$vid"
-      awk -v chunk="$CHUNK" -f "$AWK_PROG" "$f"
-    } > "$base.md"
-    mds+=("$base.md")
-  done
-
-  # Remove the intermediate .srt files, keep the readable .md
-  rm -f "${srts[@]}"
-
-  echo ">> Done. Timestamped transcripts:"
-  ls -1 "${mds[@]}"
-  exit 0
 fi
 
-echo ">> Stripping timestamps from ${#srts[@]} file(s)..."
+mds=()
 for f in "${srts[@]}"; do
-  sed -E '/^[0-9]+$/d; /-->/d; s/<[^>]*>//g; /^[[:space:]]*$/d' "$f" > "${f%.srt}.txt"
+  base="${f%.en.srt}"
+  date_part="${base%% - *}"
+  title="${base#* - }"
+  # yt-dlp appends " [VIDEOID]" via the -o template; peel it back off.
+  vid="${title##*\[}"; vid="${vid%\]}"
+  title="${title% \[*\]}"
+  {
+    printf -- '---\ntitle: %s\n' "$title"
+    if [ "$date_part" != "$base" ]; then
+      printf 'date: %s\n' "$date_part"
+    fi
+    printf 'video_id: %s\nurl: https://www.youtube.com/watch?v=%s\n' "$vid" "$vid"
+    printf -- '---\n\n# %s\n\n' "$title"
+    if [ "$STRIP" -eq 0 ]; then
+      printf 'Link to any moment: `https://www.youtube.com/watch?v=%s&t=<seconds>s`\n\n' "$vid"
+    fi
+    awk -v chunk="$CHUNK" -v stamps="$((1 - STRIP))" -f "$AWK_PROG" "$f"
+  } > "$base.md"
+  mds+=("$base.md")
 done
 
-# Remove the intermediate .srt files, keep the clean .txt
+# Remove the intermediate .srt files, keep the readable .md
 rm -f "${srts[@]}"
 
-echo ">> Done. Clean transcripts:"
-ls -1 *.en.txt
+echo ">> Done. Transcripts:"
+ls -1 "${mds[@]}"

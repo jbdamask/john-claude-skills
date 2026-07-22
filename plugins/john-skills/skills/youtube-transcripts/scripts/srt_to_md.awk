@@ -6,13 +6,22 @@
 # like <font color="white">, which are stripped here.
 #
 # Variables:
-#   chunk  0 = one timestamped line per caption line (default)
-#          N = group text into ~N-second paragraphs
+#   chunk   0 = one line per caption line (default)
+#           N = group text into ~N-second paragraphs
+#   stamps  1 = prefix each line/paragraph with [HH:MM:SS] (default)
+#           0 = omit the timestamps, leaving plain prose
 
 function hms(t,   h, m, s) {
   h = int(t / 3600); m = int((t % 3600) / 60); s = int(t % 60)
   return sprintf("%02d:%02d:%02d", h, m, s)
 }
+
+# Timestamp prefix, or nothing when stamps=0.
+function stamp(t) {
+  return stamps ? "[" hms(t) "] " : ""
+}
+
+BEGIN { if (stamps == "") stamps = 1 }
 
 function tosec(str,   p) {
   split(str, p, ":")
@@ -31,19 +40,19 @@ function tosec(str,   p) {
   if (line == "") next
 
   if (chunk == 0) {
-    print "[" hms(ts) "] " line
+    print stamp(ts) line
     next
   }
 
   if (buf == "") start = ts
   buf = (buf == "" ? line : buf " " line)
   if (ts - start >= chunk) {
-    print "[" hms(start) "] " buf
+    print stamp(start) buf
     print ""
     buf = ""
   }
 }
 
 END {
-  if (chunk > 0 && buf != "") print "[" hms(start) "] " buf
+  if (chunk > 0 && buf != "") print stamp(start) buf
 }
