@@ -12,8 +12,8 @@ description: >
 # YouTube Channel Transcripts
 
 Downloads English auto-caption transcripts for a channel's videos in a given
-date range, converts them to plain text with timestamps and duplicate scroll
-lines removed, and leaves one `.txt` per video.
+date range and leaves one readable file per video: plain `.txt` by default, or
+timestamped markdown `.md` with `--keep-timestamps`.
 
 ## Requirements
 
@@ -31,7 +31,8 @@ If missing on macOS: `brew install yt-dlp ffmpeg`.
 - **start** (required) — inclusive start date, `YYYYMMDD`.
 - **end** (required) — inclusive end date, `YYYYMMDD`.
 - **max** (optional) — cap on number of transcripts.
-- **--keep-timestamps** (optional flag, goes first) — keep raw `.srt` files with timestamps and index lines instead of stripping to plain `.txt`. Default is to strip.
+- **--keep-timestamps** (optional flag, goes first) — keep timestamps. Writes deduped markdown (`.md`) instead of plain `.txt`. The raw `.srt` is always post-processed; it is never left behind.
+- **--chunk N** (optional flag, goes first, only meaningful with `--keep-timestamps`) — group the text into ~N-second paragraphs instead of one timestamped line per caption line. `--chunk 30` reads well as prose; the default (one line per caption line) is better for grepping and citing exact moments.
 
 Ask the user for any of the three required values that aren't given. Convert
 natural-language ranges yourself ("July 2026" → `20260701` `20260731`).
@@ -39,7 +40,7 @@ natural-language ranges yourself ("July 2026" → `20260701` `20260731`).
 ## Usage
 
 ```bash
-scripts/fetch_transcripts.sh [--keep-timestamps] <channel_url> <start_YYYYMMDD> <end_YYYYMMDD> [max]
+scripts/fetch_transcripts.sh [--keep-timestamps] [--chunk N] <channel_url> <start_YYYYMMDD> <end_YYYYMMDD> [max]
 ```
 
 Example — all July 2026 videos from AI Daily Brief:
@@ -54,13 +55,44 @@ Example — at most 5 transcripts:
 scripts/fetch_transcripts.sh "https://www.youtube.com/@AIDailyBrief/videos" 20260701 20260731 5
 ```
 
-Example — keep timestamps (raw `.srt`):
+Example — keep timestamps (deduped markdown):
 
 ```bash
 scripts/fetch_transcripts.sh --keep-timestamps "https://www.youtube.com/@AIDailyBrief/videos" 20260701 20260731
 ```
 
-Output is `YYYYMMDD - Title.en.txt` (stripped) or `YYYYMMDD - Title.en.srt` (with `--keep-timestamps`) in the current directory.
+Example — timestamps grouped into 30-second paragraphs:
+
+```bash
+scripts/fetch_transcripts.sh --keep-timestamps --chunk 30 "https://www.youtube.com/@AIDailyBrief/videos" 20260701 20260731
+```
+
+Output lands in the current directory as `YYYYMMDD - Title [VIDEOID].en.txt`
+(stripped) or `YYYYMMDD - Title [VIDEOID].md` (with `--keep-timestamps`). The
+video ID is kept in the filename so a transcript can always be traced back to
+its source; the `.md` also carries it in YAML frontmatter:
+
+```markdown
+---
+title: Is Kimi K3 Really Fable Class
+date: 20260721
+video_id: lmQqiWQF_8I
+url: https://www.youtube.com/watch?v=lmQqiWQF_8I
+---
+
+# Is Kimi K3 Really Fable Class
+
+Link to any moment: `https://www.youtube.com/watch?v=lmQqiWQF_8I&t=<seconds>s`
+
+[00:00:00] Today on the AI Daily Brief, did we
+[00:00:02] actually just get a fable level open
+```
+
+or, with `--chunk 30`, one timestamped paragraph per 30 seconds.
+
+To deep-link a quote, convert its `[HH:MM:SS]` to seconds and append
+`&t=<seconds>s` to the `url` from the frontmatter — no lookup or web search
+needed.
 
 ## How it works
 
@@ -69,14 +101,23 @@ Output is `YYYYMMDD - Title.en.txt` (stripped) or `YYYYMMDD - Title.en.srt` (wit
   it does not scan all videos.
 - `--sub-langs en` (not `en.*`) avoids downloading both `en` and `en-orig`,
   which are duplicates on most channels.
-- Timestamp lines, index numbers, and the repeated scroll-in caption lines are
-  stripped; only readable text remains.
+- `--sub-format ttml` is what keeps the output clean. YouTube serves auto-captions
+  in several formats; the default `vtt`/`srt` ones are a rolling two-line window
+  where each cue repeats the previous line above the new one (interleaved with
+  10 ms "hold" cues), so every phrase lands in the file about twice. `ttml` has
+  one entry per phrase with no repetition, and `--convert-subs srt` turns it into
+  a plain SRT. Requesting the right format beats deduplicating afterward — a
+  transcript is allowed to contain genuinely repeated lines.
+- The ttml → srt conversion wraps each line in `<font …>` styling tags; both
+  output paths strip them.
+- `scripts/srt_to_md.awk` does the `.md` formatting: it drops index and timestamp
+  lines and re-tags each caption line with its start time as `[HH:MM:SS]`.
 
 ## Notes
 
 - `yt-dlp` exits non-zero when `--break-match-filters` or `--max-downloads`
   trips; the script treats those as normal completion.
 - If a video has no English auto-captions it's silently skipped.
-- The duplicate-line removal is global within a file. Adjacent repeats from
-  scrolling captions are the target; a genuinely repeated phrase elsewhere
-  gets collapsed too, which is fine for reading.
+- This skill is YouTube-only by design. `--sub-format ttml` relies on YouTube
+  offering that format, which it does for every video and language; other sites
+  may not, in which case the fetch would find no matching subtitle format.

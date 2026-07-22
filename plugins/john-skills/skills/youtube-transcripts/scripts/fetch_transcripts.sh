@@ -3,11 +3,13 @@
 # strip timestamps, and write clean .txt files.
 #
 # Usage:
-#   fetch_transcripts.sh [--keep-timestamps] <channel_url> <start_YYYYMMDD> <end_YYYYMMDD> [max]
+#   fetch_transcripts.sh [--keep-timestamps] [--chunk N] <channel_url> <start_YYYYMMDD> <end_YYYYMMDD> [max]
 #
 # Args:
-#   --keep-timestamps  optional; keep raw .srt (timestamps + index lines) instead
-#                      of stripping to plain .txt
+#   --keep-timestamps  optional; keep timestamps, writing deduped .md instead of
+#                      plain .txt
+#   --chunk N          optional; with --keep-timestamps, group text into ~N-second
+#                      paragraphs instead of one timestamped line per caption line
 #   channel_url        e.g. https://www.youtube.com/@AIDailyBrief/videos
 #   start              inclusive lower bound, YYYYMMDD
 #   end                inclusive upper bound, YYYYMMDD
@@ -16,13 +18,21 @@
 set -euo pipefail
 
 STRIP=1
-if [ "${1:-}" = "--keep-timestamps" ]; then
-  STRIP=0
-  shift
-fi
+CHUNK=0
+while [ "$#" -gt 0 ]; do
+  case "${1:-}" in
+    --keep-timestamps) STRIP=0; shift ;;
+    --chunk) CHUNK="${2:?--chunk needs a number of seconds}"; shift 2 ;;
+    *) break ;;
+  esac
+done
+
+case "$CHUNK" in
+  ''|*[!0-9]*) echo "Error: --chunk must be a whole number of seconds" >&2; exit 1 ;;
+esac
 
 if [ "$#" -lt 3 ]; then
-  echo "Usage: $0 [--keep-timestamps] <channel_url> <start_YYYYMMDD> <end_YYYYMMDD> [max]" >&2
+  echo "Usage: $0 [--keep-timestamps] [--chunk N] <channel_url> <start_YYYYMMDD> <end_YYYYMMDD> [max]" >&2
   exit 1
 fi
 
@@ -60,8 +70,9 @@ yt-dlp "$URL" \
   --skip-download \
   --write-auto-subs \
   --sub-langs "en" \
+  --sub-format ttml \
   --convert-subs srt \
-  -o "%(upload_date)s - %(title)s.%(ext)s" \
+  -o "%(upload_date)s - %(title)s [%(id)s].%(ext)s" \
   "${MAX_ARG[@]+"${MAX_ARG[@]}"}" || true
 
 shopt -s nullglob
@@ -72,15 +83,40 @@ if [ "${#srts[@]}" -eq 0 ]; then
 fi
 
 if [ "$STRIP" -eq 0 ]; then
-  echo ">> Done. Keeping raw .srt (timestamps intact):"
-  ls -1 "${srts[@]}"
+  AWK_PROG="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/srt_to_md.awk"
+  echo ">> Converting ${#srts[@]} file(s) to timestamped .md..."
+  mds=()
+  for f in "${srts[@]}"; do
+    base="${f%.en.srt}"
+    date_part="${base%% - *}"
+    title="${base#* - }"
+    # yt-dlp appends " [VIDEOID]" via the -o template; peel it back off.
+    vid="${title##*\[}"; vid="${vid%\]}"
+    title="${title% \[*\]}"
+    {
+      printf -- '---\ntitle: %s\n' "$title"
+      if [ "$date_part" != "$base" ]; then
+        printf 'date: %s\n' "$date_part"
+      fi
+      printf 'video_id: %s\nurl: https://www.youtube.com/watch?v=%s\n' "$vid" "$vid"
+      printf -- '---\n\n# %s\n\n' "$title"
+      printf 'Link to any moment: `https://www.youtube.com/watch?v=%s&t=<seconds>s`\n\n' "$vid"
+      awk -v chunk="$CHUNK" -f "$AWK_PROG" "$f"
+    } > "$base.md"
+    mds+=("$base.md")
+  done
+
+  # Remove the intermediate .srt files, keep the readable .md
+  rm -f "${srts[@]}"
+
+  echo ">> Done. Timestamped transcripts:"
+  ls -1 "${mds[@]}"
   exit 0
 fi
 
 echo ">> Stripping timestamps from ${#srts[@]} file(s)..."
 for f in "${srts[@]}"; do
-  sed -E '/^[0-9]+$/d; /-->/d; /^[[:space:]]*$/d' "$f" \
-    | awk '!seen[$0]++' > "${f%.srt}.txt"
+  sed -E '/^[0-9]+$/d; /-->/d; s/<[^>]*>//g; /^[[:space:]]*$/d' "$f" > "${f%.srt}.txt"
 done
 
 # Remove the intermediate .srt files, keep the clean .txt
