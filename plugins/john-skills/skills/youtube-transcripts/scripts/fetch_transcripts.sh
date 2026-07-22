@@ -59,6 +59,23 @@ fi
 
 echo ">> Fetching transcripts from $URL for $START..$END ${MAX:+(max $MAX)}"
 
+# Snapshot everything already in this directory. Only files that appear after
+# the fetch belong to this run, and only those get converted or deleted --
+# whatever else is here is someone else's, whatever it happens to be named.
+shopt -s nullglob dotglob
+PRE=$'\n'
+for f in *; do
+  PRE="$PRE$f"$'\n'
+done
+shopt -u dotglob
+
+is_ours() {
+  case "$PRE" in
+    *$'\n'"$1"$'\n'*) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
 # --break-match-filters stops the run once we pass below the start date
 # (channel is newest-first), so we don't scan the whole back catalog.
 # --max-downloads stops once the cap is hit. Both exit non-zero by design,
@@ -75,8 +92,20 @@ yt-dlp "$URL" \
   -o "%(upload_date)s - %(title)s [%(id)s].%(ext)s" \
   "${MAX_ARG[@]+"${MAX_ARG[@]}"}" || true
 
-shopt -s nullglob
-srts=(*.en.srt)
+srts=()
+skipped=0
+for f in *; do
+  if is_ours "$f"; then
+    case "$f" in *.en.srt) srts+=("$f") ;; esac
+  else
+    skipped=$((skipped + 1))
+  fi
+done
+
+if [ "$skipped" -gt 0 ]; then
+  echo ">> Ignoring $skipped file(s) that were already in this directory."
+fi
+
 if [ "${#srts[@]}" -eq 0 ]; then
   echo ">> No transcripts matched that range." >&2
   exit 0

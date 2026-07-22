@@ -118,6 +118,10 @@ needed.
 - `yt-dlp` exits non-zero when `--break-match-filters` or `--max-downloads`
   trips; the script treats those as normal completion.
 - If a video has no English auto-captions it's silently skipped.
+- The script takes a snapshot of the directory before fetching, and only files
+  that appear afterward are converted or cleaned up. Anything already present is
+  counted, reported, and left untouched, whatever it's named — so running twice
+  in the same directory can't mangle or delete the first run's output.
 - This skill is YouTube-only by design. `--sub-format ttml` relies on YouTube
   offering that format, which it does for every video and language; other sites
   may not, in which case the fetch would find no matching subtitle format.
