@@ -1,19 +1,19 @@
 ---
 name: youtube-transcripts
 description: >
-  Download clean text transcripts (auto-captions, timestamps stripped) for
-  videos from a YouTube channel within a date range. Use when the user wants
-  to grab transcripts/subtitles/captions from a channel, e.g. "download
-  transcripts for all AI Daily Brief videos from July 2026", "get the captions
-  from this channel for last month", "pull transcripts between two dates".
-  Requires yt-dlp and ffmpeg installed.
+  Download transcripts (auto-captions) for videos from a YouTube channel within
+  a date range, as timestamped markdown linked back to the source video. Use
+  when the user wants to grab transcripts/subtitles/captions from a channel,
+  e.g. "download transcripts for all AI Daily Brief videos from July 2026",
+  "get the captions from this channel for last month", "pull transcripts
+  between two dates". Requires yt-dlp and ffmpeg installed.
 ---
 
 # YouTube Channel Transcripts
 
 Downloads English auto-caption transcripts for a channel's videos in a given
-date range and leaves one readable file per video: plain `.txt` by default, or
-timestamped markdown `.md` with `--keep-timestamps`.
+date range and leaves one readable file per video: timestamped markdown `.md`
+by default, or plain `.txt` with `--no-timestamps`.
 
 ## Requirements
 
@@ -31,8 +31,11 @@ If missing on macOS: `brew install yt-dlp ffmpeg`.
 - **start** (required) — inclusive start date, `YYYYMMDD`.
 - **end** (required) — inclusive end date, `YYYYMMDD`.
 - **max** (optional) — cap on number of transcripts.
-- **--keep-timestamps** (optional flag, goes first) — keep timestamps. Writes deduped markdown (`.md`) instead of plain `.txt`. The raw `.srt` is always post-processed; it is never left behind.
-- **--chunk N** (optional flag, goes first, only meaningful with `--keep-timestamps`) — group the text into ~N-second paragraphs instead of one timestamped line per caption line. `--chunk 30` reads well as prose; the default (one line per caption line) is better for grepping and citing exact moments.
+- **--no-timestamps** (optional flag, goes first) — drop the timestamps and frontmatter, writing plain `.txt` instead of `.md`. Only worth it when the text is headed somewhere that can't use them.
+- **--chunk N** (optional flag, goes first) — group the text into ~N-second paragraphs instead of one timestamped line per caption line. `--chunk 30` reads well as prose; the default (one line per caption line) is better for grepping and citing exact moments. Ignored with `--no-timestamps`.
+
+Timestamped markdown is the default — don't pass a flag for it. The raw `.srt`
+is always post-processed and never left behind either way.
 
 Ask the user for any of the three required values that aren't given. Convert
 natural-language ranges yourself ("July 2026" → `20260701` `20260731`).
@@ -40,10 +43,10 @@ natural-language ranges yourself ("July 2026" → `20260701` `20260731`).
 ## Usage
 
 ```bash
-scripts/fetch_transcripts.sh [--keep-timestamps] [--chunk N] <channel_url> <start_YYYYMMDD> <end_YYYYMMDD> [max]
+scripts/fetch_transcripts.sh [--no-timestamps] [--chunk N] <channel_url> <start_YYYYMMDD> <end_YYYYMMDD> [max]
 ```
 
-Example — all July 2026 videos from AI Daily Brief:
+Example — all July 2026 videos from AI Daily Brief, as timestamped markdown:
 
 ```bash
 scripts/fetch_transcripts.sh "https://www.youtube.com/@AIDailyBrief/videos" 20260701 20260731
@@ -55,22 +58,22 @@ Example — at most 5 transcripts:
 scripts/fetch_transcripts.sh "https://www.youtube.com/@AIDailyBrief/videos" 20260701 20260731 5
 ```
 
-Example — keep timestamps (deduped markdown):
-
-```bash
-scripts/fetch_transcripts.sh --keep-timestamps "https://www.youtube.com/@AIDailyBrief/videos" 20260701 20260731
-```
-
 Example — timestamps grouped into 30-second paragraphs:
 
 ```bash
-scripts/fetch_transcripts.sh --keep-timestamps --chunk 30 "https://www.youtube.com/@AIDailyBrief/videos" 20260701 20260731
+scripts/fetch_transcripts.sh --chunk 30 "https://www.youtube.com/@AIDailyBrief/videos" 20260701 20260731
 ```
 
-Output lands in the current directory as `YYYYMMDD - Title [VIDEOID].en.txt`
-(stripped) or `YYYYMMDD - Title [VIDEOID].md` (with `--keep-timestamps`). The
-video ID is kept in the filename so a transcript can always be traced back to
-its source; the `.md` also carries it in YAML frontmatter:
+Example — plain text, no timestamps:
+
+```bash
+scripts/fetch_transcripts.sh --no-timestamps "https://www.youtube.com/@AIDailyBrief/videos" 20260701 20260731
+```
+
+Output lands in the current directory as `YYYYMMDD - Title [VIDEOID].md`, or
+`YYYYMMDD - Title [VIDEOID].en.txt` with `--no-timestamps`. The video ID is kept
+in the filename so a transcript can always be traced back to its source; the
+`.md` also carries it in YAML frontmatter:
 
 ```markdown
 ---

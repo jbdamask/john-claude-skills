@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Download YouTube auto-caption transcripts from a channel within a date range,
-# strip timestamps, and write clean .txt files.
+# Download YouTube auto-caption transcripts from a channel within a date range
+# and write timestamped markdown.
 #
 # Usage:
-#   fetch_transcripts.sh [--keep-timestamps] [--chunk N] <channel_url> <start_YYYYMMDD> <end_YYYYMMDD> [max]
+#   fetch_transcripts.sh [--no-timestamps] [--chunk N] <channel_url> <start_YYYYMMDD> <end_YYYYMMDD> [max]
 #
 # Args:
-#   --keep-timestamps  optional; keep timestamps, writing deduped .md instead of
-#                      plain .txt
-#   --chunk N          optional; with --keep-timestamps, group text into ~N-second
-#                      paragraphs instead of one timestamped line per caption line
+#   --no-timestamps    optional; drop the timestamps and frontmatter, writing
+#                      plain .txt instead of .md
+#   --chunk N          optional; group text into ~N-second paragraphs instead of
+#                      one timestamped line per caption line
 #   channel_url        e.g. https://www.youtube.com/@AIDailyBrief/videos
 #   start              inclusive lower bound, YYYYMMDD
 #   end                inclusive upper bound, YYYYMMDD
@@ -17,11 +17,12 @@
 
 set -euo pipefail
 
-STRIP=1
+STRIP=0
 CHUNK=0
 while [ "$#" -gt 0 ]; do
   case "${1:-}" in
-    --keep-timestamps) STRIP=0; shift ;;
+    --no-timestamps) STRIP=1; shift ;;
+    --keep-timestamps) shift ;;   # accepted for compatibility; now the default
     --chunk) CHUNK="${2:?--chunk needs a number of seconds}"; shift 2 ;;
     *) break ;;
   esac
@@ -32,7 +33,7 @@ case "$CHUNK" in
 esac
 
 if [ "$#" -lt 3 ]; then
-  echo "Usage: $0 [--keep-timestamps] [--chunk N] <channel_url> <start_YYYYMMDD> <end_YYYYMMDD> [max]" >&2
+  echo "Usage: $0 [--no-timestamps] [--chunk N] <channel_url> <start_YYYYMMDD> <end_YYYYMMDD> [max]" >&2
   exit 1
 fi
 
