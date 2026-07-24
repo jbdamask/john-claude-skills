@@ -48,4 +48,16 @@ When the user says "stop tracking", "stop cost tracking", or asks about the cost
 
 ## Pricing
 
-Pricing is stored in `resources/pricing.json` (last updated 2026-03-08, source: https://platform.claude.com/docs/en/about-claude/pricing). The stop script loads this file at runtime. It distinguishes between 5-minute and 1-hour cache writes using the `cache_creation.ephemeral_*` fields in the session JSONL. If pricing appears stale, fetch the pricing page and update `resources/pricing.json`.
+The stop script fetches pricing **live** from Anthropic's published page
+(`https://platform.claude.com/docs/en/about-claude/pricing.md`) at run time — it parses the
+"Model pricing" table, maps the session's model id (e.g. `claude-opus-4-8`) to the matching
+row, and caches the result for 24h in `scripts/.pricing_cache.json`. It distinguishes
+5-minute vs 1-hour cache writes via the `cache_creation.ephemeral_*` fields, and picks the
+correct row when a model has date-scoped pricing (e.g. Sonnet 5's introductory rate).
+
+`resources/pricing.json` is now only an **offline fallback**, used if both the live fetch
+and the cache are unavailable. If neither the page, the cache, nor the fallback can price a
+model, the script reports an **error** for it — it never silently substitutes another
+model's rate (the failure mode that once 3×-overcharged an Opus 4.8 run at legacy Opus
+rates). Keep `resources/pricing.json` reasonably current as a backstop, but the live page
+is the source of truth.
