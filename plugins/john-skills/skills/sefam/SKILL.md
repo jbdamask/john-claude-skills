@@ -62,13 +62,13 @@ The technical "how" is secondary and mostly gets translated away.
 - **Why** — the underlying cause, with an analogy if it helps.
 - **What this fixes / does** — a short numbered list, each item a plain outcome.
 - **What's compelling** — one or two sentences on what changes for users or the business.
-- **Honest caveat** — any real limitation, flagged plainly. This builds trust; never oversell.
+- **Potential limitations** — any real limitation, flagged plainly. This builds trust; never oversell.
 
 **For a concept:**
 - **What it is** — a one-paragraph plain-language definition. Lead with the job it does.
 - **Why it matters** — what the business or user gets from it; what would happen without it.
 - **How it works** — the key steps or pieces, as a short numbered list, each in plain terms. Use an analogy for the whole thing where it helps.
-- **Bottom line** — one or two sentences a manager could repeat to someone else.
+- **In a nutshell** — one or two sentences a manager could repeat to someone else.
 - **Caveats** — any real limitation, trade-off, or known weak spot. Never oversell.
 
 ### 5. Write like a sharp human, not a language model
@@ -147,16 +147,16 @@ These are the gold standard for tone, structure, and level of translation — th
 
 **Why:** The pages were big. To apply an edit, the system rewrites the whole page using AI. On a large page that rewrite took longer than the system's built-in time limit for a single task, so it got cut off mid-rewrite, gave up, and started over from scratch — endlessly. It never gave up cleanly, so it never told anyone it had failed.
 
-**What this fixes (five things):**
+**What this fixes:**
 1. The rewrites no longer get cut off on large pages — they now have enough room and time to finish.
 2. When something does fail for good, it now says so. Before, a permanently-failed edit sat there looking like it was still working. Now it clearly shows "merge failed" instead of a forever spinner.
 3. A stuck job can no longer retry forever and burn money — after a few honest attempts it stops and is flagged.
 4. A safety cushion so the system doesn't accidentally start processing the same page twice at once.
 5. A recovery fix so that when an operator manually retries a failed job, it actually succeeds instead of failing again immediately.
 
-**Bottom line:** Approving edits on big vaults won't silently hang or quietly waste money anymore — it either finishes, or it fails loudly so someone can act.
+**What's compelling:** Approving edits on big vaults won't silently hang or quietly waste money anymore — it either finishes, or it fails loudly so someone can act.
 
-**One honest caveat:** there's a rarer, deeper version of the "rewrite takes too long" problem I've only reduced, not eliminated. Fully solving it safely needs a measurement in the test environment first.
+**Potential limitations:** there's a rarer, deeper version of the "rewrite takes too long" problem I've only reduced, not eliminated. Fully solving it safely needs a measurement in the test environment first.
 ---
 
 ### Example B — explaining a concept (an architecture)
@@ -171,9 +171,9 @@ These are the gold standard for tone, structure, and level of translation — th
 2. Workers in the back pick up jobs when they're free. Add more workers and the line clears faster; that's the main dial we turn when things get busy.
 3. If a job fails, it goes back in line and is retried a few times before it's set aside and flagged for a human — it doesn't just vanish.
 
-**Bottom line:** The design trades a few seconds of "your report is being prepared" for a system that stays fast and doesn't fall over under load.
+**In a nutshell:** The design trades a few seconds of "your report is being prepared" for a system that stays fast and doesn't fall over under load.
 
-**One honest caveat:** because the work happens in the background, a report isn't ready the instant someone asks for it. For very time-sensitive requests, that short delay is a real trade-off we chose on purpose.
+**Caveats:** because the work happens in the background, a report isn't ready the instant someone asks for it. For very time-sensitive requests, that short delay is a real trade-off we chose on purpose.
 ---
 
 ## Anti-patterns to avoid
