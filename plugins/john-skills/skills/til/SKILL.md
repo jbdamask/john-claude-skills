@@ -34,7 +34,7 @@ date: <YYYY-MM-DD>
 
 # <title, repeated>
 
-<the learning: one paragraph, 2–6 sentences — the symptom as the reader would hit it, the mechanism (the "because"), what you did about it, the one-level-up generalization when there's a real one, and a final clause or sentence for any caveat or unverified edge>
+<the learning, as one to three short paragraphs — the symptom as the reader would hit it, the mechanism (the "because"), what you did about it, the one-level-up generalization when there's a real one, and a final clause or sentence for any caveat or unverified edge>
 
 <optional: ONE code block, command, or image — the receipt>
 ```
@@ -57,7 +57,7 @@ The description is the second hook, read in previews and by agents deciding whet
 
 ### Body rules
 
-- A TIL body is one paragraph plus an optional receipt. No headers beyond the H1, no section labels, no bold lead-ins, no bullet lists. The internal order (symptom → mechanism → fix → generalization → caveat) is the structure; the prose carries it without signposts, and pieces that don't apply are simply absent.
+- A TIL body is one to three short paragraphs plus an optional receipt. One is the default; break into a second or third only where the thought genuinely shifts — typically symptom-and-mechanism, then rule-and-generalization, then caveat. Never break mid-thought to fake rhythm, and never let a single paragraph become a wall the reader's eye slides off. No headers, no section labels, no bold lead-ins, no bullet lists — the internal order (symptom → mechanism → fix → generalization → caveat) is the structure, the prose carries it without signposts, and pieces that don't apply are simply absent.
 - **The learning must contain a "because."** A phenomenon alone ("day-old pagination tokens skip rows") is trivia; the mechanism ("because the token is a key snapshot, not a live cursor") is what lets the reader predict adjacent behavior. If you can't state the mechanism, say so plainly rather than implying you understand it.
 - **Name the symptom in the reader's terms.** Many readers arrive mid-problem, searching what they observe — an error message, missing rows, a doubled charge. Describe the observable behavior as they would encounter it, not as your session narrative. Findable beats autobiographical.
 - **Generalize exactly one level up, when there's a real one.** After the specific learning, one plain sentence naming the general class it belongs to (e.g. "any pagination token that encodes a position, not a snapshot, has this problem"). This is what makes the TIL useful to readers outside the specific technology. One level only, stated plainly — no strained analogies, no profundity. If the learning doesn't genuinely generalize, skip the sentence.
