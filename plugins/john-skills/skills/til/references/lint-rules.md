@@ -58,7 +58,7 @@ Rules for the pre-delivery lint pass. Extracted from the `cringelinter` skill so
 
 ## 500 — Formatting
 
-**501 Header overuse.** In a TIL this is strict: the H1 and the three bold labels are the only structure allowed.
+**501 Header overuse.** In a TIL this is strict: the H1 is the only structure allowed — the body is plain paragraphs with no headers, section labels, or bold lead-ins.
 
 **502 Bullets where prose would do.** If items could be joined with "because," "therefore," or "which means," write prose. Bullets only for genuinely parallel, enumerable items.
 

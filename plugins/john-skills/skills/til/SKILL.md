@@ -35,13 +35,13 @@ tags: [<1-3 tags from references/tag-taxonomy.md>]
 
 # <title, repeated>
 
-**Context.** One or two sentences: what you were doing when this came up.
+<paragraph 1 — context: one or two sentences on what you were doing and the symptom you hit>
 
-**The learning.** The core of the TIL, 2–5 sentences. State the insight, the mechanism behind it, and what you did about it.
+<paragraph 2 — the learning: 2–5 sentences stating the insight, the mechanism behind it, and what you did about it>
 
 <optional: ONE code block, command, or image — the receipt>
 
-**Watch out.** (optional, one sentence) The caveat, edge case, or thing not yet verified. Omit the section if there isn't one.
+<optional closing paragraph — one sentence: the caveat, edge case, or thing not yet verified; omit if there isn't one>
 ```
 
 ### Title rules
@@ -66,8 +66,8 @@ Tags come only from `references/tag-taxonomy.md` — a fixed hierarchy, max thre
 
 ### Body rules
 
-- The three bold labels (**Context**, **The learning**, **Watch out**) are the only structure. No headers beyond the H1, no bullet lists unless the items are genuinely parallel and enumerable.
-- **The learning must contain a "because."** A phenomenon alone ("day-old pagination tokens skip rows") is trivia; the mechanism ("because the token is a key snapshot, not a live cursor") is what lets the reader predict adjacent behavior. If you can't state the mechanism, say so in **Watch out** rather than implying you understand it.
+- A TIL body is simple paragraphs. No headers beyond the H1, no section labels, no bold lead-ins, no bullet lists unless the items are genuinely parallel and enumerable. The paragraph order above (context → learning → receipt → caveat) is the structure; the prose carries it without signposts.
+- **The learning must contain a "because."** A phenomenon alone ("day-old pagination tokens skip rows") is trivia; the mechanism ("because the token is a key snapshot, not a live cursor") is what lets the reader predict adjacent behavior. If you can't state the mechanism, say so in the closing caveat rather than implying you understand it.
 - **Name the symptom in the reader's terms.** Many readers arrive mid-problem, searching what they observe — an error message, missing rows, a doubled charge. Describe the observable behavior as they would encounter it, not as your session narrative. Findable beats autobiographical.
 - **Generalize exactly one level up, when there's a real one.** After the specific learning, one plain sentence naming the general class it belongs to (e.g. "any pagination token that encodes a position, not a snapshot, has this problem"). This is what makes the TIL useful to readers outside the specific technology. One level only, stated plainly — no strained analogies, no profundity. If the learning doesn't genuinely generalize, skip the sentence.
 - Canonical filename, for whenever a TIL is saved or exported: `YYYY-MM-DD-<slug-of-title>.md`.
@@ -91,7 +91,7 @@ Tags come only from `references/tag-taxonomy.md` — a fixed hierarchy, max thre
 
 The Markdown spec above is the TIL's canonical form — every output format is a rendering of that same content, never a rewrite. Compose and lint once, then render. The user picks the format ("as markdown", "as html", "tweet it"); with no preference stated, use plain text.
 
-- **Plain text (default).** No markup of any kind — it must paste cleanly anywhere. Title on the first line, `Author · YYYY-MM-DD · tags` on the second, blank line, then the body paragraphs with their labels as plain words (`Context:`, `The learning:`, `Watch out:`). Indent the receipt by four spaces. No `#`, no `**`, no backticks.
+- **Plain text (default).** No markup of any kind — it must paste cleanly anywhere. Title on the first line, `Author · YYYY-MM-DD · tags` on the second, blank line, then the body paragraphs. Indent the receipt by four spaces. No `#`, no `**`, no backticks.
 - **Markdown.** The canonical form: full YAML frontmatter and body, presented as a Markdown code block with the suggested filename (`YYYY-MM-DD-<slug>.md`).
 - **HTML.** Render using `references/html-template.html` — substitute the placeholders, keep the content identical.
 - **Tweet.** One line, 120 characters maximum — count them. Distill the claim plus the mechanism or the fix, whichever earns its characters; drop metadata, labels, and receipt entirely. All writing rules still apply: no hashtag salad, no clickbait, no fluff. If the learning can't survive at 120 characters, say which part you cut.
@@ -111,11 +111,11 @@ tags: [data/databases/dynamodb, cloud/aws]
 
 # Don't save your DynamoDB pagination token for tomorrow
 
-**Context.** Our list endpoint stored `LastEvaluatedKey` client-side so users could resume paging later.
+Our list endpoint stored `LastEvaluatedKey` client-side so users could resume paging later.
 
-**The learning.** Rows went silently missing from resumed listings because a `LastEvaluatedKey` is a snapshot of one item's key, not a live cursor — delete that item and resuming from it skips or repeats rows. We stopped persisting tokens across sessions and capped resume windows at one request cycle. Any pagination token that encodes a position rather than a snapshot has the same problem.
+Rows went silently missing from resumed listings because a `LastEvaluatedKey` is a snapshot of one item's key, not a live cursor — delete that item and resuming from it skips or repeats rows. We stopped persisting tokens across sessions and capped resume windows at one request cycle. Any pagination token that encodes a position rather than a snapshot has the same problem.
 
-**Watch out.** This bit us on Scan; Query against a stable partition behaves better but we haven't verified it.
+This bit us on Scan; Query against a stable partition behaves better but we haven't verified it.
 ```
 
 That's the target: readable in under a minute, one insight, one caveat, nothing wasted.
