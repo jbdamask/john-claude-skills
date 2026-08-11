@@ -30,7 +30,6 @@ title: <the learning as a claim, ≤70 chars>
 description: <one sentence expanding the title — what and why it matters>
 author: <name>
 date: <YYYY-MM-DD>
-tags: [<1-3 tags from references/tag-taxonomy.md>]
 ---
 
 # <title, repeated>
@@ -55,10 +54,6 @@ A TIL lives or dies on its title. A great one carries three elements in ≤70 ch
 ### Description rules
 
 The description is the second hook, read in previews and by agents deciding whether to fetch the full TIL. One sentence. It pays off or raises the stakes on what the title left open — the cost, the surprise, the fix — and never restates the title in different words.
-
-### Tag rules
-
-Tags come only from `references/tag-taxonomy.md` — a fixed hierarchy, max three levels (`data/databases/dynamodb`), broad preferred over fine. Read it before tagging; 1–3 tags per TIL; never invent tags outside its rules.
 
 ### Body rules
 
@@ -87,7 +82,7 @@ Tags come only from `references/tag-taxonomy.md` — a fixed hierarchy, max thre
 
 The Markdown spec above is the TIL's canonical form — every output format is a rendering of that same content, never a rewrite. Compose and lint once, then render. The user picks the format ("as markdown", "as html", "tweet it"); with no preference stated, use plain text.
 
-- **Plain text (default).** No markup of any kind — it must paste cleanly anywhere. Title on the first line, `Author · YYYY-MM-DD · tags` on the second, blank line, then the body paragraph. Indent the receipt by four spaces. No `#`, no `**`, no backticks.
+- **Plain text (default).** No markup of any kind — it must paste cleanly anywhere. Title on the first line, `Author · YYYY-MM-DD` on the second, blank line, then the body paragraph. Indent the receipt by four spaces. No `#`, no `**`, no backticks.
 - **Markdown.** The canonical form: full YAML frontmatter and body, presented as a Markdown code block with the suggested filename (`YYYY-MM-DD-<slug>.md`).
 - **HTML.** Render using `references/html-template.html` — substitute the placeholders, keep the content identical.
 - **Tweet.** One line, 120 characters maximum — count them. Distill the claim plus the mechanism or the fix, whichever earns its characters; drop metadata, labels, and receipt entirely. All writing rules still apply: no hashtag salad, no clickbait, no fluff. If the learning can't survive at 120 characters, say which part you cut.
@@ -102,7 +97,6 @@ title: Don't save your DynamoDB pagination token for tomorrow
 description: Resuming a day-old scan silently skips or repeats rows — here's what bit us and the rule we adopted.
 author: John Damask
 date: 2026-08-11
-tags: [data/databases/dynamodb, cloud/aws]
 ---
 
 # Don't save your DynamoDB pagination token for tomorrow

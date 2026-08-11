@@ -36,10 +36,6 @@
     font: 0.8rem/1.4 -apple-system, 'Segoe UI', sans-serif; color: var(--muted);
     border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.5rem;
   }
-  .meta .tag {
-    display: inline-block; background: var(--code-bg); border: 1px solid var(--border);
-    border-radius: 3px; padding: 0.05rem 0.4rem; margin-left: 0.3rem;
-  }
   p { margin: 0 0 1rem; }
   strong { font-family: -apple-system, 'Segoe UI', sans-serif; font-size: 0.95em; }
   pre {
@@ -54,6 +50,6 @@
 <p class="kicker">Today I Learned</p>
 <h1>{{TITLE}}</h1>
 <p class="description">{{DESCRIPTION}}</p>
-<div class="meta">{{AUTHOR}} · {{DATE}} {{TAGS_AS_SPANS}}</div>
+<div class="meta">{{AUTHOR}} · {{DATE}}</div>
 
 {{BODY_HTML}}
