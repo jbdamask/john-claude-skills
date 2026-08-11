@@ -1,0 +1,39 @@
+name: plugin-version-check
+# Backstop for the .githooks/pre-commit auto-bump: fail if a plugin's files
+# changed without a version bump in its .claude-plugin/plugin.json.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check changed plugins for version bumps
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          else
+            base="${{ github.event.before }}"
+            # First push to a branch or force-push edge case: skip
+            git cat-file -e "$base" 2>/dev/null || { echo "No base commit; skipping."; exit 0; }
+          fi
+          fail=0
+          for name in $(git diff --name-only "$base" HEAD -- 'plugins/' | sed -n 's|^plugins/\([^/]*\)/.*|\1|p' | sort -u); do
+            manifest="plugins/$name/.claude-plugin/plugin.json"
+            [ -f "$manifest" ] || continue
+            old=$(git show "$base:$manifest" 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' 2>/dev/null || echo "")
+            new=$(python3 -c "import json; print(json.load(open('$manifest')).get('version',''))")
+            if [ "$old" = "$new" ]; then
+              echo "::error file=$manifest::Plugin '$name' changed but version is still $new. Bump it (or run: git config core.hooksPath .githooks)."
+              fail=1
+            else
+              echo "$name: $old -> $new OK"
+            fi
+          done
+          exit $fail

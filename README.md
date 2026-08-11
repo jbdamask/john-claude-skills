@@ -36,3 +36,11 @@ To add a new skill:
 1. Create a directory under `skills/<skill-name>/`
 2. Add a `SKILL.md` file with YAML frontmatter (`name`, `description`) and instructions
 3. Optionally add `references/`, `scripts/`, or `assets/` subdirectories
+
+### Dev setup (required after cloning)
+
+```sh
+git config core.hooksPath .githooks
+```
+
+This enables the committed pre-commit hook that auto-bumps a plugin's patch version in `.claude-plugin/plugin.json` whenever that plugin's files change. Claude Code only re-syncs an installed plugin when its version changes, so a commit without a bump never reaches installed copies. CI (`plugin-version-check`) fails any push or PR that changes a plugin without bumping it.

@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Auto-bump a plugin's patch version whenever its files are staged for commit.
+# Claude Code only re-syncs an installed plugin when the version in
+# .claude-plugin/plugin.json changes, so a content change without a bump
+# silently never reaches installed copies.
+#
+# Wired via: git config core.hooksPath .githooks  (see README)
+set -euo pipefail
+
+staged=$(git diff --cached --name-only --diff-filter=ACMRD)
+[ -z "$staged" ] && exit 0
+
+plugins=$(echo "$staged" | sed -n 's|^plugins/\([^/]*\)/.*|\1|p' | sort -u)
+[ -z "$plugins" ] && exit 0
+
+for name in $plugins; do
+  manifest="plugins/$name/.claude-plugin/plugin.json"
+  [ -f "$manifest" ] || continue
+
+  head_ver=$(git show "HEAD:$manifest" 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' 2>/dev/null || echo "")
+  staged_ver=$(git show ":$manifest" 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' 2>/dev/null || echo "")
+
+  # Already bumped by hand (staged version differs from HEAD) -> leave it alone.
+  if [ -n "$staged_ver" ] && [ "$staged_ver" != "$head_ver" ]; then
+    continue
+  fi
+
+  new_ver=$(python3 - "$manifest" <<'EOF'
+import json, sys
+path = sys.argv[1]
+with open(path) as f:
+    data = json.load(f)
+major, minor, patch = (data.get("version") or "0.0.0").split(".")
+data["version"] = f"{major}.{minor}.{int(patch) + 1}"
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+print(data["version"])
+EOF
+)
+  git add "$manifest"
+  echo "pre-commit: bumped $name to $new_ver"
+done
