@@ -82,7 +82,7 @@ The description is the second hook, read in previews and by agents deciding whet
 
 The Markdown spec above is the TIL's canonical form — every output format is a rendering of that same content, never a rewrite. Compose and lint once, then render. The user picks the format ("as markdown", "as html", "tweet it"); with no preference stated, use plain text.
 
-- **Plain text (default).** No markup of any kind — it must paste cleanly anywhere. Title on the first line, `Author · YYYY-MM-DD` on the second, blank line, then the body paragraph. Indent the receipt by four spaces. No `#`, no `**`, no backticks.
+- **Plain text (default).** No markup of any kind — it must paste cleanly anywhere. Title on the first line, `Author · YYYY-MM-DD` on the second, blank line, then the body paragraphs separated by blank lines. Indent the receipt by four spaces. No `#`, no `**`, no backticks.
 - **Markdown.** The canonical form: full YAML frontmatter and body, presented as a Markdown code block with the suggested filename (`YYYY-MM-DD-<slug>.md`).
 - **HTML.** Render using `references/html-template.html` — substitute the placeholders, keep the content identical.
 - **Tweet.** One line, 120 characters maximum — count them. Distill the claim plus the mechanism or the fix, whichever earns its characters; drop metadata, labels, and receipt entirely. All writing rules still apply: no hashtag salad, no clickbait, no fluff. If the learning can't survive at 120 characters, say which part you cut.
