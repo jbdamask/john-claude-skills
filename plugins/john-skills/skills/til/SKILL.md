@@ -1,11 +1,11 @@
 ---
-name: today-i-learned
-description: Condense an AI session (or a single learning) into a very short, standardized TIL document — a concise title, one-line description, and a briefing of what was done, in Markdown by default or HTML on request. Inspired by Simon Willison's TILs but much shorter. Use when the user says "TIL", "today I learned", "write a TIL", "make a TIL from this session", "capture what we just learned", "turn this into a TIL", or wants a short shareable write-up of something learned or done in a session.
+name: til
+description: Condense an AI session (or a single learning) into a very short, standardized TIL document — a concise title, one-line description, and a briefing of what was done, in Markdown by default or HTML on request. Use when the user says "TIL", "today I learned", or "write a TIL", or wants a short shareable write-up of something learned or done in a session.
 ---
 
 # Today I Learned (TIL)
 
-Turn the current session — or one thing learned in it — into a document a person reads in under a minute and an AI agent can parse without guessing. The output is the deliverable; the making of it should take minutes, not hours.
+Turn the current session — or one thing learned in it — into a document a person reads in under a minute and an AI agent can parse without guessing. The output is the deliverable; the making of it should take a minute or two.
 
 ## Core principles
 
