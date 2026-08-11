@@ -84,9 +84,17 @@ Tags come only from `references/tag-taxonomy.md` — a fixed hierarchy, max thre
 3. **Draft to the format.** Hold the core principles while writing — don't draft loose and trim later. Pick the one receipt worth including, or none.
 4. **Lint.** Read `references/lint-rules.md` (bundled with this skill) and check the draft against every rule; fix all hits, re-check once, then stop — max 2 passes. Then check the hard constraints: title ≤70 chars, body ≤250 words, one artifact max, all frontmatter fields present.
 5. **Guardrail: security sweep before delivery.** Reread the finished TIL — frontmatter, body, and especially the receipt (code blocks and commands are where secrets hide) — against the step-0 list. Check for high-entropy strings, anything shaped like a key or token (`AKIA…`, `sk-…`, `ghp_…`, `eyJ…`), email addresses, 9- and 16-digit numbers, and real hostnames or account IDs. Redact with placeholders, never with partial masking. If you're unsure whether something is sensitive, ask the user before delivering — don't guess in the shareable direction.
-6. **Deliver in-session.** This skill produces content, not files. Present the complete TIL — full frontmatter and body — as a Markdown code block in your final message, along with the suggested filename (`YYYY-MM-DD-<slug>.md`). Don't write it to disk, and don't narrate the lint loop or the process.
-   - HTML on request: render the same content using `references/html-template.html` — substitute the placeholders, keep the content identical to the Markdown version.
+6. **Deliver in-session.** This skill produces content, not files. Render the TIL in the requested output format (plain text by default — see Output formats below) in your final message. Don't write it to disk, and don't narrate the lint loop or the process.
    - If the user then asks to save it somewhere, send it to a connected app (Slack, a wiki, a blog), or publish it, do that with whatever tools the session has — those are follow-ups the user directs, not defaults. If they name a filesystem location, write it there as a one-off.
+
+## Output formats
+
+The Markdown spec above is the TIL's canonical form — every output format is a rendering of that same content, never a rewrite. Compose and lint once, then render. The user picks the format ("as markdown", "as html", "tweet it"); with no preference stated, use plain text.
+
+- **Plain text (default).** No markup of any kind — it must paste cleanly anywhere. Title on the first line, `Author · YYYY-MM-DD · tags` on the second, blank line, then the body paragraphs with their labels as plain words (`Context:`, `The learning:`, `Watch out:`). Indent the receipt by four spaces. No `#`, no `**`, no backticks.
+- **Markdown.** The canonical form: full YAML frontmatter and body, presented as a Markdown code block with the suggested filename (`YYYY-MM-DD-<slug>.md`).
+- **HTML.** Render using `references/html-template.html` — substitute the placeholders, keep the content identical.
+- **Tweet.** One line, 120 characters maximum — count them. Distill the claim plus the mechanism or the fix, whichever earns its characters; drop metadata, labels, and receipt entirely. All writing rules still apply: no hashtag salad, no clickbait, no fluff. If the learning can't survive at 120 characters, say which part you cut.
 
 This skill does not persist or publish on its own. Users route TILs through their own connectors and storage; the standard format is what makes that hand-off trivial.
 
