@@ -1,6 +1,6 @@
-# John's Claude Code Skills
+# John Claude Skills
 
-<img src="social-card.png" alt="John's Claude Code Skills" width="640" />
+<img src="social-card.png" alt="John Claude Skills" width="640" />
 
 A collection of Claude Code skills for development workflows.
 
