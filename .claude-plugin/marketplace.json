@@ -6,25 +6,28 @@
   },
   "metadata": {
     "description": "A collection of Claude Code skills for development workflows",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "plugins": [
     {
       "name": "john-skills",
       "source": "./plugins/john-skills",
-      "description": "Development workflow tools: skills for devlog, mcp-scanner, cringephobe, architecture-decision-records, and more; plus agents like session-recap for context recovery"
+      "description": "Development workflow tools: skills for devlog, mcp-scanner, cringephobe, architecture-decision-records, and more; plus agents like session-recap for context recovery",
+      "version": "1.3.0"
     },
     {
       "name": "context-analyzer",
       "description": "Analyze Claude Code chat history to identify context window bloat sources and get optimization recommendations. Parses JSONL session files and reports on image usage, file re-reads, tool output volume, and more.",
       "source": "./plugins/context-analyzer",
-      "strict": true
+      "strict": true,
+      "version": "0.1.0"
     },
     {
       "name": "beads-planner",
       "description": "Plan-only mode and GitHub-issue-to-Beads workflow. Provides planning without auto-execution and structured work decomposition into Beads epics, tasks, and sub-tasks with verifiable acceptance criteria.",
       "source": "./plugins/beads-planner",
-      "strict": false
+      "strict": false,
+      "version": "0.1.0"
     }
   ]
 }

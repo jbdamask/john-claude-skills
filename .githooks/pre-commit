@@ -41,3 +41,27 @@ EOF
   git add "$manifest"
   echo "pre-commit: bumped $name to $new_ver"
 done
+
+# Keep marketplace.json per-plugin versions in sync with each plugin.json
+# (Claude Desktop reads versions from the marketplace entry).
+python3 - <<'EOF'
+import json, os, subprocess
+mp = ".claude-plugin/marketplace.json"
+if os.path.exists(mp):
+    with open(mp) as f:
+        data = json.load(f)
+    changed = False
+    for entry in data.get("plugins", []):
+        pj = f"plugins/{entry['name']}/.claude-plugin/plugin.json"
+        if os.path.exists(pj):
+            ver = json.load(open(pj)).get("version")
+            if ver and entry.get("version") != ver:
+                entry["version"] = ver
+                changed = True
+    if changed:
+        with open(mp, "w") as f:
+            json.dump(data, f, indent=2)
+            f.write("\n")
+        subprocess.run(["git", "add", mp], check=True)
+        print("pre-commit: synced marketplace.json plugin versions")
+EOF
