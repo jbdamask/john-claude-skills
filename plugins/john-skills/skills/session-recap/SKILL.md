@@ -1,6 +1,6 @@
 ---
 name: session-recap
-description: Reconstruct where a coding session left off by reading the latest .handoff document if one exists, then gathering context from git history, planning docs, task trackers, and past Claude Code chat logs, then summarizing it as recent activity, current state, active tasks, and likely next steps. Use when the user asks "where were we?", "what were we working on?", "recap the session", "catch me up", "what did I do yesterday", or otherwise returns to a project and needs to resume. Also use when a new conversation looks like a continuation of earlier work.
+description: Reconstruct where a coding session left off by reading the latest .handoff document if one exists, then gathering context from git history, planning docs, task trackers, and past agent chat logs from any supported harness (Claude Code, Codex CLI, Amp, opencode, Grok CLI), then summarizing it as recent activity, current state, active tasks, and likely next steps. Use when the user asks "where were we?", "what were we working on?", "recap the session", "catch me up", "what did I do yesterday", or otherwise returns to a project and needs to resume. Also use when a new conversation looks like a continuation of earlier work.
 ---
 
 # Session Recap
@@ -66,21 +66,110 @@ Check for whichever of these exist: `DEVLOG.md`, `CHANGELOG.md`, `PLAN.md`, `.cl
 - `.linear/` or `linear.json`
 - Issue references in recent commit messages (`#123`, `JIRA-456`)
 
-### Claude Code chat history
+### Agent chat history
 
-Past sessions for this project live under `~/.claude/projects/<project-path-with-slashes-as-hyphens>/` — e.g. `/Users/barry/project1` maps to `-Users-barry-project1`. Each session is a JSONL file named by its session id. If a handoff gave you a `SESSION_ID`, read that file directly instead of guessing; a project directory often holds several concurrent logs.
+**Do not assume the last session was Claude Code.** Five harnesses keep local transcripts, and a
+repo can have several of them in its history. If a handoff is present, its `HARNESS` and
+`SESSION_ID` name the exact one — read that and skip the search.
+
+Fastest way to find what exists: the companion `handoff` skill's gather script, which is
+read-only and already resolves all five.
 
 ```bash
-ls -lt ~/.claude/projects/$(pwd | tr '/' '-')/ | head
+bash "${CLAUDE_PLUGIN_ROOT}/skills/handoff/scripts/gather.sh"   # outside Claude Code, use the path relative to that SKILL.md
 ```
 
-Files are chronological, so tail the most recent one or two rather than reading them whole:
+Its `SESSION` and `OTHER_AGENT_SESSIONS` blocks print a `transcript:` path per harness. Two
+bounds to know: it reports only the **newest** session per harness, and its codex scan stops at
+the 600 newest rollout files. For anything older, search by hand with the table below.
+
+| Harness | Where this repo's sessions live | Format |
+|---|---|---|
+| Claude Code | `~/.claude/projects/<cwd with / as ->/<id>.jsonl` | JSONL, one record per line |
+| Codex CLI | `${CODEX_HOME:-~/.codex}/sessions/YYYY/MM/DD/rollout-*-<id>.jsonl` | JSONL; **not keyed by cwd** — match on the `session_meta` line |
+| Amp | `~/.local/share/amp/threads/T-*.json` (synced), else `~/.cache/amp/logs/threads/<id>.log` (live) | single JSON doc; repo is in `env.initial.trees[].uri` |
+| opencode | `~/.local/share/opencode/storage/` — `session/*/ses_*.json` carries `directory` | one JSON file per message, **text in a separate tree** |
+| Grok CLI | `~/.grok/sessions/<percent-encoded cwd>/<id>/chat_history.jsonl` | JSONL; dir name is the `unquote`d cwd |
+
+Only two of the five are tail-able. Read the tail, grep for specifics, and never dump a whole
+session into context.
 
 ```bash
-tail -c 20000 ~/.claude/projects/$(pwd | tr '/' '-')/<session>.jsonl
+# Claude Code — newest transcript for this directory
+ls -t ~/.claude/projects/$(pwd | tr '/' '-')/*.jsonl | head
+tail -n 60 <file> | python3 -c '
+import sys, json
+for l in sys.stdin:
+    try: d = json.loads(l)
+    except: continue
+    if d.get("type") not in ("user", "assistant"): continue
+    c = (d.get("message") or {}).get("content")
+    if isinstance(c, list): c = " ".join(b.get("text","") for b in c if isinstance(b, dict) and b.get("type") == "text")
+    if c and str(c).strip(): print(d["type"].upper(), ":", str(c).replace("\n", " ")[:200])'
+
+# Codex — find this repo's rollouts, then read one
+grep -l "\"cwd\":\"$(pwd)\"" $(ls -t ${CODEX_HOME:-~/.codex}/sessions/*/*/*/rollout-*.jsonl | head -200) 2>/dev/null | head
+tail -n 80 <rollout> | python3 -c '
+import sys, json
+for l in sys.stdin:
+    try: d = json.loads(l)
+    except: continue
+    p = d.get("payload") or {}
+    if p.get("type") != "message": continue
+    t = " ".join(c.get("text","") for c in (p.get("content") or []) if isinstance(c, dict))
+    if t.strip(): print(str(p.get("role","?")).upper(), ":", t.replace("\n", " ")[:200])'
+
+# Grok — records key on "type", NOT "role"; "reasoning" and "tool_result" are noise
+python3 -c '
+import json, sys
+rows = []
+for l in open(sys.argv[1], errors="replace"):
+    try: d = json.loads(l)
+    except: continue
+    if d.get("type") not in ("user", "assistant"): continue
+    c = d.get("content")
+    if isinstance(c, list): c = " ".join(b.get("text","") for b in c if isinstance(b, dict))
+    if c and str(c).strip(): rows.append(d["type"].upper() + ": " + str(c).replace("\n", " ")[:200])
+print("\n".join(rows[-30:]))' <chat_history.jsonl>
+
+# Amp — one JSON doc; user and assistant text are both content[].text
+python3 -c '
+import json, sys
+d = json.load(open(sys.argv[1], errors="replace"))
+print("title:", d.get("title"))
+for m in (d.get("messages") or [])[-20:]:
+    c = m.get("content")
+    if isinstance(c, list): c = " ".join(b.get("text","") for b in c if isinstance(b, dict) and b.get("type") == "text")
+    if c and str(c).strip(): print(str(m.get("role","?")).upper(), ":", str(c).replace("\n", " ")[:200])' <T-*.json>
+
+# opencode — message metadata and message text are in two different trees
+python3 -c '
+import json, glob, os, sys
+ses = sys.argv[1]  # ses_...
+st = os.path.expanduser("~/.local/share/opencode/storage")
+for f in sorted(glob.glob(os.path.join(st, "message", ses, "msg_*.json")), key=os.path.getmtime)[-20:]:
+    m = json.load(open(f, errors="replace"))
+    txt = []
+    for pf in sorted(glob.glob(os.path.join(st, "part", m["id"], "prt_*.json"))):
+        p = json.load(open(pf, errors="replace"))
+        if p.get("type") == "text" and p.get("text"): txt.append(p["text"])
+    if txt: print(str(m.get("role","?")).upper(), ":", " ".join(txt).replace("\n", " ")[:200])' ses_XXXX
 ```
 
-These files get large. Read the tail, grep for specifics, and never dump a whole session into context.
+Traps, all hit for real:
+
+- **`msg_*.json` holds no text.** opencode stores the message record and its text separately —
+  the words live in `storage/part/<msg_id>/prt_*.json`. Reading only the message tree returns
+  metadata and looks like an empty session.
+- **Grok has no `role` field.** Filter on `type`; `reasoning` records carry `encrypted_content`
+  and are unreadable, so skip them rather than treating the session as opaque.
+- **Amp's synced thread store lags a live session badly** — the newest `threads/T-*.json` can be
+  months old while a thread is running. A live thread exists only as
+  `~/.cache/amp/logs/threads/<id>.log`, which has the title and agent mode but no model.
+- **Codex rollouts are date-partitioned, not cwd-partitioned.** Every match requires opening
+  files, so bound the scan and say so if you do.
+- **`$CLAUDE_CODE_SESSION_ID` is inherited by subshells.** If you shell out to inspect another
+  harness, it is still set — do not read it as evidence about that harness.
 
 ## 3. Report
 
