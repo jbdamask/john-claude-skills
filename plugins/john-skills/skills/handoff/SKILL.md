@@ -23,7 +23,9 @@ One file per handoff. Never overwrite or edit an earlier one; the folder is an a
 bash "${CLAUDE_PLUGIN_ROOT}/skills/handoff/scripts/gather.sh"
 ```
 
-Read-only. It returns the timestamp slug, the previous handoff and its `HEAD_SHA`, branch/remote/upstream state, the working tree, the commits since the last handoff, beads or other tracker state, open PRs, and whether `.handoff/` is properly tracked.
+`${CLAUDE_PLUGIN_ROOT}` only exists under Claude Code. On another harness, run the script by its path relative to this `SKILL.md` — `bash <dir of this file>/scripts/gather.sh`.
+
+Read-only, and needs `python3` for the session block. It returns the timestamp slug, the running harness with its model and effort, other agents' recent sessions in this repo, the previous handoff and its `HEAD_SHA`, branch/remote/upstream state, the working tree, the commits since the last handoff, beads or other tracker state, open PRs, per-agent project config, and whether `.handoff/` is properly tracked.
 
 Everything else comes from the session you just lived through. The script supplies facts; you supply judgment about what those facts mean.
 
@@ -36,7 +38,7 @@ TITLE: Wire the pack registry to the shop page
 STATUS: in_progress          # in_progress | blocked | milestone_complete | abandoned
 MODEL: claude-opus-5         # the API model id, not a harness label
 MODEL_EFFORT: high           # low | medium | high | xhigh | max
-HARNESS: claude-code 2.1.235
+HARNESS: claude-code 2.1.235  # or codex 0.148.0 | amp | opencode 1.1.53 | grok 1.0.5
 SESSION_ID: d14bf04b-e7f1-4a20-b851-e0f5abb0c04e
 REPO: jbdamask/john-claude-skills
 BRANCH: feat/pack-registry
@@ -60,8 +62,20 @@ Rules for the fields:
 
 - **MODEL / MODEL_EFFORT** — take these from the harness, not from self-report. Most coding agents record the model and reasoning effort in a local session transcript or in the environment, and that record is authoritative in a way your own introspection isn't: it carries the exact model id rather than a display name, and effort is usually not visible to you at all. `gather.sh` resolves them where it can. Precedence: harness transcript or environment → your own session context → `unknown`. Never guess a model id.
   - **MODEL** must be the id an API would accept (`claude-opus-5`), not a harness label. Claude Code shows the running model as `claude-opus-5[1m]`, where `[1m]` marks the 1M-context session variant — that suffix is client-side notation and is not a valid model id. The transcript's `message.model` has the clean value; use it.
-  - **Concretely, for Claude Code**: `$CLAUDE_CODE_SESSION_ID` names the transcript at `~/.claude/projects/<cwd with / replaced by ->/<session-id>.jsonl`; each assistant record carries `message.model`, a top-level `effort`, and `version`. `$CLAUDE_EFFORT` holds the effort directly. Use the session id rather than the newest file — a project directory often holds several concurrent session logs.
-  - **On another harness**: look for an equivalent local transcript or env var before falling back. If neither exists, `unknown` is the honest answer and is better than a plausible guess a later reader would trust.
+  - `gather.sh` resolves five harnesses. Where it prints `unknown`, write `unknown` — that is the honest answer, and better than a plausible guess a later reader would trust.
+
+    | Harness | Session pointer | Record it reads | Model / effort |
+    |---|---|---|---|
+    | Claude Code | `$CLAUDE_CODE_SESSION_ID` | `~/.claude/projects/<cwd with / as ->/<id>.jsonl` | `message.model`, top-level `effort`, `version` |
+    | Codex CLI | `$CODEX_SESSION_ID`, `$CODEX_THREAD_ID` | `$CODEX_HOME/sessions/YYYY/MM/DD/rollout-*-<id>.jsonl` | `turn_context.payload.model`; effort often absent |
+    | Amp | `$AMP_CURRENT_THREAD_ID` | `~/.local/share/amp/threads/T-*.json`, else `~/.cache/amp/logs/threads/<id>.log` | last `messages[].usage.model`; `agentMode` is the effort analogue |
+    | opencode | none | `~/.local/share/opencode/storage/session/*/ses_*.json` + `message/<id>/*.json` | `modelID` / `providerID`; `agent` mode, no reasoning effort |
+    | Grok CLI | none | `~/.grok/sessions/<percent-encoded cwd>/<id>/summary.json` | `current_model_id` (or `model_id` in `chat_history.jsonl`), `reasoning_effort` |
+
+  - **Codex, opencode and Grok record the session's cwd**, so the script matches sessions to this repo by path. **Amp and Claude Code key off an env var or the workspace root.** A session opened at a parent directory does not count as this repo's.
+  - **`detected_via` tells you how much to trust the block.** An env var or grok's `active_sessions.json` is direct evidence. `INFERRED` means the script guessed from the most recent matching session — check the session id is really yours before copying it into frontmatter.
+  - **On a harness not in that table**: look for an equivalent local transcript or env var before falling back to `unknown`.
+- **OTHER_AGENT_SESSIONS** — the script also reports the most recent session *each other harness* had in this repo. If another agent was working here recently, say so in `## May have moved since I stopped`; the next session may be walking into someone else's uncommitted work. A row marked `workspace unverified` is a session the script could see but could not tie to this repo — don't assert it as fact.
 - **HARNESS / SESSION_ID** — which agent tool ran the session, and its transcript identity. `SESSION_ID` is what lets a later session go read the raw log when this handoff leaves a gap. Omit both if the harness doesn't expose them.
 - **HEAD_SHA** — the single most important field. session-recap uses it to run `git log <HEAD_SHA>..HEAD` and detect anything that landed *after* this handoff was written.
 - **OPEN_LOOPS** — one line per thread this session left unclosed, in the order you happen to think of them. A neutral inventory, not a ranking. Empty only if you genuinely finished everything.
