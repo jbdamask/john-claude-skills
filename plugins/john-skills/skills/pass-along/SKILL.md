@@ -80,14 +80,27 @@ Rules for the fields:
   - **MODEL** must be the id an API would accept (`claude-opus-5`), not a harness label. Claude Code shows the running model as `claude-opus-5[1m]`, where `[1m]` marks the 1M-context session variant — that suffix is client-side notation and is not a valid model id. The transcript's `message.model` has the clean value; use it.
   - `gather.sh` resolves five harnesses. Where it prints `unknown`, write `unknown` — that is the honest answer, and better than a plausible guess a later reader would trust.
 
-    | Harness | Session pointer | Record it reads | Model / effort |
-    |---|---|---|---|
-    | Claude Code | `$CLAUDE_CODE_SESSION_ID` | `~/.claude/projects/<cwd with / as ->/<id>.jsonl` | `message.model`, top-level `effort`, `version` |
-    | Codex CLI | `$CODEX_SESSION_ID`, `$CODEX_THREAD_ID` | `$CODEX_HOME/sessions/YYYY/MM/DD/rollout-*-<id>.jsonl` | `turn_context.payload.model`; effort often absent |
-    | Amp | `$AMP_CURRENT_THREAD_ID` | `~/.local/share/amp/threads/T-*.json`, else `~/.cache/amp/logs/threads/<id>.log` | last `messages[].usage.model`; `agentMode` is the effort analogue |
-    | opencode | none | `~/.local/share/opencode/opencode.db` (SQLite, ≥1.18); legacy installs use `storage/session/*/ses_*.json` | `modelID` / `providerID` off the newest assistant `message.data`; `agent` mode, no reasoning effort |
-    | Grok CLI | none | `~/.grok/sessions/<percent-encoded cwd>/<id>/summary.json` | `current_model_id` (or `model_id` in `chat_history.jsonl`), `reasoning_effort` |
+    | Harness | Env override | mac / Linux | Windows | Model / effort |
+    |---|---|---|---|---|
+    | Claude Code | `CLAUDE_CONFIG_DIR` relocates all of it | `~/.claude/projects/<cwd, / as ->/<id>.jsonl` | `%USERPROFILE%\.claude\...` | `message.model`, top-level `effort`, `version` |
+    | Codex CLI | `CODEX_HOME` | `~/.codex/sessions/YYYY/MM/DD/rollout-*-<id>.jsonl` | `%USERPROFILE%\.codex\...` | `turn_context.payload.model`; effort often absent |
+    | Amp | `AMP_HOME` (unverified) | `~/.local/share/amp/threads/T-*.json`, else `~/.cache/amp/logs/threads/<id>.log` | tries the same unix-style layout, then `%LOCALAPPDATA%`/`%APPDATA%` | last `messages[].usage.model`; `agentMode` is the effort analogue |
+    | opencode | `OPENCODE_DB` | `$XDG_DATA_HOME/opencode/opencode.db` (SQLite, ≥1.18); legacy `storage/session/*/ses_*.json` | `%LOCALAPPDATA%\opencode\data\opencode.db` | `modelID` / `providerID` off the newest assistant message; `agent` mode, no reasoning effort |
+    | Grok CLI | `GROK_HOME` | `~/.grok/sessions/<percent-encoded cwd>/<id>/summary.json` | `%USERPROFILE%\.grok\...` | `current_model_id` (or `model_id` in `chat_history.jsonl`), `reasoning_effort` |
 
+  - **How much of that is documented.** The env overrides, the four home directories and
+    opencode's Windows location are vendor-documented. **The per-harness file layouts inside
+    those directories are not** — Amp's thread store especially is undocumented, and everything
+    below the home directory was read off live installs on one macOS machine. Treat the homes as
+    reliable and the internals as observed-not-promised: they have already moved once (opencode
+    went from a JSON tree to SQLite between 1.1 and 1.18, which silently broke detection until
+    the DB was added). If a harness reports `none for this repo` and you believe otherwise, the
+    layout is the first thing to suspect.
+  - **Windows runs this script through Git Bash or WSL** — it is bash, and there is no native
+    cmd/PowerShell path. Under Git Bash `$HOME` is `%USERPROFILE%`, so the `~`-rooted paths
+    resolve. Under WSL they resolve to the *Linux* home, which is a different set of sessions
+    than a native Windows install writes; a session started on one side is invisible from the
+    other.
   - **Codex, opencode and Grok record the session's cwd**, so the script matches sessions to this repo by path. **Amp and Claude Code key off an env var or the workspace root.** A session opened at a parent directory does not count as this repo's.
   - **`detected_via` tells you how much to trust the block.** An env var or grok's `active_sessions.json` is direct evidence. `INFERRED` means the script guessed from the most recent matching session — check the session id is really yours before copying it into frontmatter.
   - **On a harness not in that table**: look for an equivalent local transcript or env var before falling back to `unknown`.

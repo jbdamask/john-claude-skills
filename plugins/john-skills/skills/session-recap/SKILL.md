@@ -91,13 +91,19 @@ Its `SESSION` and `OTHER_AGENT_SESSIONS` blocks print a `transcript:` path per h
 bounds to know: it reports only the **newest** session per harness, and its codex scan stops at
 the 600 newest rollout files. For anything older, search by hand with the table below.
 
-| Harness | Where this repo's sessions live | Format |
+| Harness | Where this repo's sessions live (env override wins) | Format |
 |---|---|---|
-| Claude Code | `~/.claude/projects/<cwd with / as ->/<id>.jsonl` | JSONL, one record per line |
+| Claude Code | `~/.claude/projects/<cwd with / as ->/<id>.jsonl` — `CLAUDE_CONFIG_DIR` relocates all of it; Windows `%USERPROFILE%\.claude` | JSONL, one record per line |
 | Codex CLI | `${CODEX_HOME:-~/.codex}/sessions/YYYY/MM/DD/rollout-*-<id>.jsonl` | JSONL; **not keyed by cwd** — match on the `session_meta` line |
 | Amp | `~/.local/share/amp/threads/T-*.json` (synced), else `~/.cache/amp/logs/threads/<id>.log` (live) | single JSON doc; repo is in `env.initial.trees[].uri` |
-| opencode | `~/.local/share/opencode/opencode.db` (SQLite, ≥1.18) — `session.directory`; legacy installs use `storage/session/*/ses_*.json` | DB: message text in `part.data`. Legacy: one JSON file per message, **text in a separate tree** |
-| Grok CLI | `~/.grok/sessions/<percent-encoded cwd>/<id>/chat_history.jsonl` | JSONL; dir name is the `unquote`d cwd |
+| opencode | `$XDG_DATA_HOME/opencode/opencode.db` (SQLite, ≥1.18), or `OPENCODE_DB`; Windows `%LOCALAPPDATA%\opencode\data`. Legacy installs use `storage/session/*/ses_*.json` | DB: message text in `part.data`. Legacy: one JSON file per message, **text in a separate tree** |
+| Grok CLI | `${GROK_HOME:-~/.grok}/sessions/<percent-encoded cwd>/<id>/chat_history.jsonl` | JSONL; dir name is the `unquote`d cwd |
+
+The home directories and env overrides above are vendor-documented; **the layouts inside them are
+not** — they were read off live installs and have already moved once (opencode's JSON tree became
+SQLite). If a harness looks unused for a repo you know it worked in, suspect the layout before
+concluding there is no history. On Windows this all assumes Git Bash or WSL, and WSL sessions are
+a separate set from native-Windows ones.
 
 Only two of the five are tail-able. Read the tail, grep for specifics, and never dump a whole
 session into context.

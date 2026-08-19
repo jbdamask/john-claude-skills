@@ -68,8 +68,29 @@ def when(epoch):
 
 
 # ---------------------------------------------------------------- claude code
+def win_dirs():
+    """Windows roots, visible under Git Bash / WSL where this script can actually run."""
+    out = []
+    for v in ("LOCALAPPDATA", "APPDATA"):
+        d = os.environ.get(v)
+        if d and os.path.isdir(d):
+            out.append(d)
+    return out
+
+
+def xdg_data():
+    return os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+
+
+def claude_home():
+    """~/.claude, or %USERPROFILE%\\.claude on Windows. CLAUDE_CONFIG_DIR relocates all of it
+    (documented: code.claude.com/docs/en/claude-directory)."""
+    d = os.environ.get("CLAUDE_CONFIG_DIR")
+    return os.path.expanduser(d) if d else os.path.expanduser("~/.claude")
+
+
 def claude_transcripts():
-    d = os.path.expanduser("~/.claude/projects/" + REPO.replace("/", "-"))
+    d = os.path.join(claude_home(), "projects", REPO.replace("/", "-"))
     return sorted(glob.glob(os.path.join(d, "*.jsonl")), key=mtime, reverse=True)
 
 
@@ -106,9 +127,7 @@ def pick_claude():
     want = os.environ.get("CLAUDE_CODE_SESSION_ID")
     files = claude_transcripts()
     if want:
-        exact = os.path.expanduser(
-            "~/.claude/projects/" + REPO.replace("/", "-") + "/" + want + ".jsonl"
-        )
+        exact = os.path.join(claude_home(), "projects", REPO.replace("/", "-"), want + ".jsonl")
         if os.path.isfile(exact):
             return claude_read(exact), "$CLAUDE_CODE_SESSION_ID"
         return None, None
@@ -216,10 +235,18 @@ def pick_codex():
 # opencode >= ~1.18 keeps sessions in SQLite (opencode.db); the storage/*.json tree below is
 # the legacy layout and is still read as a fallback for older installs.
 def opencode_dbs():
-    xdg = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+    """OPENCODE_DB wins if set. Otherwise XDG on mac/linux, %LOCALAPPDATA%\\opencode\\data on
+    Windows — opencode resolves by first-existing-candidate, so this mirrors that."""
     out = []
-    for b in (os.path.join(xdg, "opencode"), os.path.expanduser("~/.local/share/opencode"),
-              os.path.expanduser("~/.opencode")):
+    explicit = os.environ.get("OPENCODE_DB")
+    if explicit and os.path.isfile(os.path.expanduser(explicit)):
+        out.append(os.path.expanduser(explicit))
+    bases = [os.path.join(xdg_data(), "opencode"),
+             os.path.expanduser("~/.local/share/opencode"),
+             os.path.expanduser("~/.opencode")]
+    bases += [os.path.join(w, "opencode", "data") for w in win_dirs()]
+    bases += [os.path.join(w, "opencode") for w in win_dirs()]
+    for b in bases:
         f = os.path.join(b, "opencode.db")
         if os.path.isfile(f) and f not in out:
             out.append(f)
@@ -294,10 +321,12 @@ def opencode_db_read(row):
 
 
 def opencode_storages():
-    xdg = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
     bases, out = [], []
-    for b in (os.path.join(xdg, "opencode"), os.path.expanduser("~/.local/share/opencode"),
-              os.path.expanduser("~/.opencode")):
+    for b in ([os.path.join(xdg_data(), "opencode"),
+               os.path.expanduser("~/.local/share/opencode"),
+               os.path.expanduser("~/.opencode")]
+              + [os.path.join(w, "opencode", "data") for w in win_dirs()]
+              + [os.path.join(w, "opencode") for w in win_dirs()]):
         if b not in bases:
             bases.append(b)
     for b in bases:
@@ -387,14 +416,18 @@ def pick_opencode():
 
 # ----------------------------------------------------------------------- amp
 def amp_dirs():
-    xdg = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+    """Amp does not document its thread store; these were read off a live install. Amp DOES
+    document using %USERPROFILE%\\.config\\amp on Windows rather than %APPDATA%, so the
+    unix-style layout is tried there first, with the APPDATA roots as a fallback."""
     cache = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
     data = []
-    for b in (os.path.join(xdg, "amp"), os.path.expanduser("~/.local/share/amp"),
-              os.environ.get("AMP_HOME") or ""):
+    for b in ([os.path.join(xdg_data(), "amp"), os.path.expanduser("~/.local/share/amp"),
+               os.environ.get("AMP_HOME") or ""]
+              + [os.path.join(w, "amp") for w in win_dirs()]):
         if b and os.path.isdir(b) and b not in data:
             data.append(b)
-    return data, os.path.join(cache, "amp")
+    caches = [os.path.join(cache, "amp")] + [os.path.join(w, "amp", "cache") for w in win_dirs()]
+    return data, next((c for c in caches if os.path.isdir(c)), caches[0])
 
 
 def amp_trees(d):
