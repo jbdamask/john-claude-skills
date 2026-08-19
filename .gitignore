@@ -10,3 +10,6 @@ skills/aws-quick-endpoint/endpoint-info.txt
 
 # cost-tracking runtime price cache (never commit)
 **/.pricing_cache.json
+
+# session pass-along docs are local working state, not repo content
+.pass-along/
