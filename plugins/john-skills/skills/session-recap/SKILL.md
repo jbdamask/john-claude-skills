@@ -73,10 +73,18 @@ repo can have several of them in its history. If a pass-along is present, its `H
 `SESSION_ID` name the exact one — read that and skip the search.
 
 Fastest way to find what exists: the companion `pass-along` skill's gather script, which is
-read-only and already resolves all five.
+read-only and already resolves all five. It sits beside this skill, in the same plugin:
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/pass-along/scripts/gather.sh"   # outside Claude Code, use the path relative to that SKILL.md
+bash "<this skill's directory>/../pass-along/scripts/gather.sh"
+```
+
+Under Claude Code the placeholder below works too — it is substituted into skill content at load
+time. It is **not** a shell variable, and no other harness expands it; if it reaches a shell
+intact the path collapses to `/skills/...` and fails.
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/pass-along/scripts/gather.sh"
 ```
 
 Its `SESSION` and `OTHER_AGENT_SESSIONS` blocks print a `transcript:` path per harness. Two

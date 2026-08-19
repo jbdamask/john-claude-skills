@@ -19,11 +19,26 @@ One file per pass-along. Never overwrite or edit an earlier one; the folder is a
 
 ## 1. Gather the facts
 
+Run `scripts/gather.sh` **from this skill's own directory** — every harness tells you where that
+is when it loads the skill.
+
+```bash
+bash "<this skill's directory>/scripts/gather.sh"
+```
+
+Under Claude Code you can write the line below instead: `${CLAUDE_PLUGIN_ROOT}` is a placeholder
+Claude Code substitutes into skill content at load time, so by the time you read this it is
+already an absolute path.
+
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/skills/pass-along/scripts/gather.sh"
 ```
 
-`${CLAUDE_PLUGIN_ROOT}` only exists under Claude Code. On another harness, run the script by its path relative to this `SKILL.md` — `bash <dir of this file>/scripts/gather.sh`.
+**No other harness substitutes it, and it is not a shell variable** — it is exported to hook and
+MCP subprocesses only, never to an ordinary tool call. If that token reaches a shell unexpanded
+it becomes `/skills/pass-along/scripts/gather.sh` and fails with a bare "No such file or
+directory". Seeing a path that starts at `/skills/` means you are on a harness that did not
+substitute: use the skill directory instead.
 
 Read-only, and needs `python3` for the session block. It returns the timestamp slug, the running harness with its model and effort, other agents' recent sessions in this repo, the previous pass-along and its `HEAD_SHA`, branch/remote/upstream state, the working tree, the commits since the last pass-along, beads or other tracker state, open PRs, per-agent project config, and whether `.pass-along/` is properly tracked.
 
