@@ -1,18 +1,18 @@
 ---
 name: session-recap
-description: Reconstruct where a coding session left off by reading the latest .handoff document if one exists, then gathering context from git history, planning docs, task trackers, and past agent chat logs from any supported harness (Claude Code, Codex CLI, Amp, opencode, Grok CLI), then summarizing it as recent activity, current state, active tasks, and likely next steps. Use when the user asks "where were we?", "what were we working on?", "recap the session", "catch me up", "what did I do yesterday", or otherwise returns to a project and needs to resume. Also use when a new conversation looks like a continuation of earlier work.
+description: Reconstruct where a coding session left off by reading the latest .pass-along document if one exists, then gathering context from git history, planning docs, task trackers, and past agent chat logs from any supported harness (Claude Code, Codex CLI, Amp, opencode, Grok CLI), then summarizing it as recent activity, current state, active tasks, and likely next steps. Use when the user asks "where were we?", "what were we working on?", "recap the session", "catch me up", "what did I do yesterday", or otherwise returns to a project and needs to resume. Also use when a new conversation looks like a continuation of earlier work.
 ---
 
 # Session Recap
 
 Reconstruct the state of a project so the user can get back to work fast. Gather from several sources, then summarize. Do not guess — report only what you actually find.
 
-## 1. Check for a handoff first
+## 1. Check for a pass-along first
 
 If the previous session wrote one, it beats every other source — it carries intent, not just artifacts.
 
 ```bash
-ls .handoff/*-HANDOFF.md 2>/dev/null | sort | tail -1
+ls .pass-along/*-PASS-ALONG.md 2>/dev/null | sort | tail -1
 ```
 
 Filenames sort chronologically, so the last one is the newest. Read it in full. Then find out what changed *after* it was written, using the `HEAD_SHA` in its frontmatter:
@@ -22,13 +22,13 @@ git log --oneline <HEAD_SHA>..HEAD
 git status --short
 ```
 
-If that range is empty and the tree is clean, the handoff is still accurate — report it as described under "Surfacing a handoff" below, and stop. Skip the rest of this skill; you're done.
+If that range is empty and the tree is clean, the pass-along is still accurate — report it as described under "Surfacing a pass-along" below, and stop. Skip the rest of this skill; you're done.
 
-If work landed after the handoff, the handoff is your baseline and the sources below fill the gap. Say plainly which parts of your recap came from the handoff and which you reconstructed, since the reconstructed parts are the less reliable half.
+If work landed after the pass-along, the pass-along is your baseline and the sources below fill the gap. Say plainly which parts of your recap came from the pass-along and which you reconstructed, since the reconstructed parts are the less reliable half.
 
-Older handoffs form a chain via their `PREDECESSOR` field. Follow it back only when the newest one leaves a real gap — don't read the whole folder by default.
+Older pass-alongs form a chain via their `PREDECESSOR` field. Follow it back only when the newest one leaves a real gap — don't read the whole folder by default.
 
-### Surfacing a handoff
+### Surfacing a pass-along
 
 You are reporting to whoever directs the next session — the user, or an orchestrating agent. Your job is to put the previous session's findings in front of them as **input to a decision they own**, not to act on those findings yourself.
 
@@ -41,7 +41,7 @@ Then stop and let them choose. A recap that quietly adopts the previous session'
 
 ## 2. Gather Context
 
-Only if there's no handoff, or it's stale. Run the cheap checks in parallel; stop early once you have a clear picture. Not every source exists in every project.
+Only if there's no pass-along, or it's stale. Run the cheap checks in parallel; stop early once you have a clear picture. Not every source exists in every project.
 
 ### Git
 
@@ -69,14 +69,14 @@ Check for whichever of these exist: `DEVLOG.md`, `CHANGELOG.md`, `PLAN.md`, `.cl
 ### Agent chat history
 
 **Do not assume the last session was Claude Code.** Five harnesses keep local transcripts, and a
-repo can have several of them in its history. If a handoff is present, its `HARNESS` and
+repo can have several of them in its history. If a pass-along is present, its `HARNESS` and
 `SESSION_ID` name the exact one — read that and skip the search.
 
-Fastest way to find what exists: the companion `handoff` skill's gather script, which is
+Fastest way to find what exists: the companion `pass-along` skill's gather script, which is
 read-only and already resolves all five.
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/handoff/scripts/gather.sh"   # outside Claude Code, use the path relative to that SKILL.md
+bash "${CLAUDE_PLUGIN_ROOT}/skills/pass-along/scripts/gather.sh"   # outside Claude Code, use the path relative to that SKILL.md
 ```
 
 Its `SESSION` and `OTHER_AGENT_SESSIONS` blocks print a `transcript:` path per harness. Two
@@ -201,8 +201,8 @@ Four sections, tight:
 1. **Recent Activity** — what the last few commits and sessions accomplished
 2. **Current State** — branch, uncommitted changes, work in progress
 3. **Active Tasks** — open TODOs, beads, issues, unfinished plans
-4. **Open threads** — what's unfinished, unranked. If a handoff supplied a recommendation, present it here as the previous session's view with its reasoning, clearly attributed and clearly still open. Without a handoff, offer what the work seems to have been heading toward, labeled as your inference. Either way it's a suggestion for the orchestrator to accept or redirect — don't act on it unprompted.
+4. **Open threads** — what's unfinished, unranked. If a pass-along supplied a recommendation, present it here as the previous session's view with its reasoning, clearly attributed and clearly still open. Without a pass-along, offer what the work seems to have been heading toward, labeled as your inference. Either way it's a suggestion for the orchestrator to accept or redirect — don't act on it unprompted.
 
 Keep it short and actionable. The user wants to resume work, not read a report. If the project is new or has no history, say so plainly in a sentence.
 
-If no handoff existed and the session had real substance worth preserving, mention that the `handoff` skill can write one at the end of this session so the next recap is a single file read instead of an excavation.
+If no pass-along existed and the session had real substance worth preserving, mention that the `pass-along` skill can write one at the end of this session so the next recap is a single file read instead of an excavation.

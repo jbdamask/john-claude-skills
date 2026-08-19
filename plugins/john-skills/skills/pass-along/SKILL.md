@@ -1,31 +1,31 @@
 ---
-name: handoff
-description: Write a session handoff document to .handoff/<YYYY-MM-DD-HHMM>-HANDOFF.md capturing operational state — what moved, what is half-done, which loops are still open, and the traps that wasted time — with frontmatter metadata (model, repo, branch, HEAD sha, issue tracker, issues, beads) for the agent that picks the work up. Use when the user says "write a handoff", "/handoff", "I'm wrapping up", "hand this off", "save state for next session", "end of session notes", or is about to stop work, switch machines, or hand a branch to someone else. Also offer one proactively after a significant milestone or when context is about to compact. Companion to the session-recap skill, which reads these.
+name: pass-along
+description: Write a session pass-along document to .pass-along/<YYYY-MM-DD-HHMM>-PASS-ALONG.md capturing operational state — what moved, what is half-done, which loops are still open, and the traps that wasted time — with frontmatter metadata (model, repo, branch, HEAD sha, issue tracker, issues, beads) for the agent that picks the work up. Use when the user says "write a pass-along", "/pass-along", "write a handoff", "hand this off", "I'm wrapping up", "save state for next session", "end of session notes", or is about to stop work, switch machines, or hand a branch to someone else. Also offer one proactively after a significant milestone or when context is about to compact. Companion to the session-recap skill, which reads these.
 ---
 
-# Session Handoff
+# Session Pass-Along
 
 Write the document the *next* session needs — human or agent, possibly on another machine, with none of your context.
 
-A handoff is not a summary of the conversation and not a changelog. Git already has the changelog. The handoff carries what git cannot: which work is half-finished and where the seam is, what you tried that did not work, what was decided and why, and what might have moved after you stopped.
+A pass-along is not a summary of the conversation and not a changelog. Git already has the changelog. The pass-along carries what git cannot: which work is half-finished and where the seam is, what you tried that did not work, what was decided and why, and what might have moved after you stopped.
 
-**Recommend, but don't decide.** Whoever directs the next session — a human, an orchestrator agent — may be pointing it somewhere you know nothing about. You spent this session on Stripe payments; they may have already decided the next one is security hardening. So say what you'd do next and why, especially when scoped work went unfinished — that judgment is worth having. Just make sure it reads as *this session's recommendation*, held next to a neutral inventory of everything you left open, so it can be weighed and overruled. A recommendation stated as a directive gets obeyed, because the handoff is the most-trusted document in the next session's context.
+**Recommend, but don't decide.** Whoever directs the next session — a human, an orchestrator agent — may be pointing it somewhere you know nothing about. You spent this session on Stripe payments; they may have already decided the next one is security hardening. So say what you'd do next and why, especially when scoped work went unfinished — that judgment is worth having. Just make sure it reads as *this session's recommendation*, held next to a neutral inventory of everything you left open, so it can be weighed and overruled. A recommendation stated as a directive gets obeyed, because the pass-along is the most-trusted document in the next session's context.
 
 ## Output
 
-`<repo root>/.handoff/<YYYY-MM-DD-HHMM>-HANDOFF.md` — local time, e.g. `.handoff/2026-08-19-1430-HANDOFF.md`.
+`<repo root>/.pass-along/<YYYY-MM-DD-HHMM>-PASS-ALONG.md` — local time, e.g. `.pass-along/2026-08-19-1430-PASS-ALONG.md`.
 
-One file per handoff. Never overwrite or edit an earlier one; the folder is an append-only chain, and each handoff names its predecessor. Handoffs are **committed to the repo**, so they travel with the branch — which means **never put secrets, tokens, or credentials in one**. Reference where a value lives (`the SA key is in 1Password / SSM at /foo/bar`), never the value.
+One file per pass-along. Never overwrite or edit an earlier one; the folder is an append-only chain, and each pass-along names its predecessor. Pass-alongs are **committed to the repo**, so they travel with the branch — which means **never put secrets, tokens, or credentials in one**. Reference where a value lives (`the SA key is in 1Password / SSM at /foo/bar`), never the value.
 
 ## 1. Gather the facts
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/handoff/scripts/gather.sh"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/pass-along/scripts/gather.sh"
 ```
 
 `${CLAUDE_PLUGIN_ROOT}` only exists under Claude Code. On another harness, run the script by its path relative to this `SKILL.md` — `bash <dir of this file>/scripts/gather.sh`.
 
-Read-only, and needs `python3` for the session block. It returns the timestamp slug, the running harness with its model and effort, other agents' recent sessions in this repo, the previous handoff and its `HEAD_SHA`, branch/remote/upstream state, the working tree, the commits since the last handoff, beads or other tracker state, open PRs, per-agent project config, and whether `.handoff/` is properly tracked.
+Read-only, and needs `python3` for the session block. It returns the timestamp slug, the running harness with its model and effort, other agents' recent sessions in this repo, the previous pass-along and its `HEAD_SHA`, branch/remote/upstream state, the working tree, the commits since the last pass-along, beads or other tracker state, open PRs, per-agent project config, and whether `.pass-along/` is properly tracked.
 
 Everything else comes from the session you just lived through. The script supplies facts; you supply judgment about what those facts mean.
 
@@ -54,7 +54,7 @@ PRS: ["#28 open, CI pending"]
 OPEN_LOOPS: ["PR #28 open, CI unverified", "migrate.py handles users, not orgs", "webhook retry deliberately deferred"]
 RECOMMENDED_NEXT: Finish migrate.py org handling — it is the only in-scope item left unfinished.  # this session's view, not a decision
 SCOPE_COMPLETE: false        # was everything this session set out to do actually finished?
-PREDECESSOR: .handoff/2026-08-18-0912-HANDOFF.md
+PREDECESSOR: .pass-along/2026-08-18-0912-PASS-ALONG.md
 PRIME: ["bd ready", "npm run dev"]   # commands the next session should run first
 ---
 ```
@@ -77,12 +77,12 @@ Rules for the fields:
   - **`detected_via` tells you how much to trust the block.** An env var or grok's `active_sessions.json` is direct evidence. `INFERRED` means the script guessed from the most recent matching session — check the session id is really yours before copying it into frontmatter.
   - **On a harness not in that table**: look for an equivalent local transcript or env var before falling back to `unknown`.
 - **OTHER_AGENT_SESSIONS** — the script also reports the most recent session *each other harness* had in this repo. If another agent was working here recently, say so in `## May have moved since I stopped`; the next session may be walking into someone else's uncommitted work. A row marked `workspace unverified` is a session the script could see but could not tie to this repo — don't assert it as fact.
-- **HARNESS / SESSION_ID** — which agent tool ran the session, and its transcript identity. `SESSION_ID` is what lets a later session go read the raw log when this handoff leaves a gap. Omit both if the harness doesn't expose them.
+- **HARNESS / SESSION_ID** — which agent tool ran the session, and its transcript identity. `SESSION_ID` is what lets a later session go read the raw log when this pass-along leaves a gap. Omit both if the harness doesn't expose them.
 - **REPO / WORKING_DIR** — `REPO` is the remote's `owner/name`, and nothing else. If the directory
   has no origin remote, **leave `REPO` blank** — a local path is not a repo identity, and writing
   one there makes an unpushed scratch directory look like a project a later reader can clone.
   Put the path in `WORKING_DIR` instead. `gather.sh` prints both, already resolved.
-- **HEAD_SHA** — the single most important field. session-recap uses it to run `git log <HEAD_SHA>..HEAD` and detect anything that landed *after* this handoff was written.
+- **HEAD_SHA** — the single most important field. session-recap uses it to run `git log <HEAD_SHA>..HEAD` and detect anything that landed *after* this pass-along was written.
 - **OPEN_LOOPS** — one line per thread this session left unclosed, in the order you happen to think of them. A neutral inventory, not a ranking. Empty only if you genuinely finished everything.
 - **RECOMMENDED_NEXT** — one sentence: what you'd pick up first, if it were your call. It isn't your call, and the wording should not pretend otherwise. Omit it if you have no real basis for one — a fabricated recommendation is worse than none.
 - **SCOPE_COMPLETE** — `false` if work the session set out to do went unfinished. This is the flag that tells an orchestrator your recommendation deserves weight: unfinished in-scope work is exactly the case where the session that did it knows best.
@@ -95,16 +95,16 @@ Rules for the fields:
 Lead with what could bite, not with what you accomplished. Use these headings so session-recap can find things; drop any section that is genuinely empty.
 
 ### `## Start here`
-Two or three lines: the one-sentence state of the work, and the literal first commands to run. Point at the predecessor handoff and any plan or devlog that carries the narrative.
+Two or three lines: the one-sentence state of the work, and the literal first commands to run. Point at the predecessor pass-along and any plan or devlog that carries the narrative.
 
 ### `## May have moved since I stopped`
-State you left in flight and could not confirm: a CI run still going, a PR awaiting checks, a deploy mid-flight, a background job, a rate limit that resets at a known time, a service someone else was restarting. Say what to check and what the expected outcome was. **This section is why the handoff exists** — put it first and be specific enough to verify.
+State you left in flight and could not confirm: a CI run still going, a PR awaiting checks, a deploy mid-flight, a background job, a rate limit that resets at a known time, a service someone else was restarting. Say what to check and what the expected outcome was. **This section is why the pass-along exists** — put it first and be specific enough to verify.
 
 ### `## What this session did`
 Headlines only, each with a pointer to the evidence — commit sha, PR number, bead id, file path. Do not restate the diff. Include the *why* where a reader could otherwise undo it: "split-horizon registry, because the owner ruled official packs ship in the tarball."
 
 ### `## Commits`
-The list from the gather script, since the predecessor handoff. Bounded — if it runs past ~25, summarize the bulk and list only the ones that carry a decision or a risk. Note any commit that is *not* pushed.
+The list from the gather script, since the predecessor pass-along. Bounded — if it runs past ~25, summarize the bulk and list only the ones that carry a decision or a risk. Note any commit that is *not* pushed.
 
 ### `## Uncommitted work`
 Only if the tree is dirty. For each meaningful change: the file, what it does, and whether it is finished, half-finished, or a scratch experiment to delete. A next session cannot tell a deliberate WIP from abandoned debris — say which. Note stashes too.
@@ -127,7 +127,7 @@ Flag consequences of *not* doing it, where real. That's the part an orchestrator
 Only what the **user** actually said about what comes next, attributed and close to their words: "the user said the retry logic can wait until after the launch." This outranks your recommendation — if the two conflict, say so explicitly. Never put your own inference here, and omit the section entirely if they said nothing.
 
 ### `## Decisions and rules`
-Choices made this session that constrain future work, each with its reason. Also any rule you learned the hard way — the thing that must not be done again. These are the entries most likely to be silently violated by a session that skips the handoff.
+Choices made this session that constrain future work, each with its reason. Also any rule you learned the hard way — the thing that must not be done again. These are the entries most likely to be silently violated by a session that skips the pass-along.
 
 ### `## Traps`
 Things that cost time and will cost it again: a flaky test and its real cause, a command that resolves the wrong database, a tool whose flag is a lie, an error message that means something other than it says. Be blunt.
@@ -140,8 +140,8 @@ Scratch checkouts, temp files, env changes, running processes, anything left in 
 
 ## 4. Finish
 
-- Create `.handoff/` if it doesn't exist. If it's gitignored, tell the user — these are meant to be committed.
-- `git add` the new handoff. Don't commit it unless the user asks; they usually want it in the same commit as their work.
+- Create `.pass-along/` if it doesn't exist. If it's gitignored, tell the user — these are meant to be committed.
+- `git add` the new pass-along. Don't commit it unless the user asks; they usually want it in the same commit as their work.
 - Tell the user the path, the open loops you recorded, and your recommendation, so they can correct any of it while they still remember.
 
 ## Quality bar
@@ -149,10 +149,10 @@ Scratch checkouts, temp files, env changes, running processes, anything left in 
 Before writing, check the draft against these. Every one of them is a real failure mode:
 
 - Would this be useful to someone who was not in the session? Cut anything only you can decode.
-- Does it say what is *unfinished*, not just what is done? A handoff of only accomplishments is a status report and is nearly useless.
+- Does it say what is *unfinished*, not just what is done? A pass-along of only accomplishments is a status report and is nearly useless.
 - Is every open loop listed, including the embarrassing ones you'd rather not flag?
 - Is the inventory of open threads separable from your recommendation, so someone can read the state without inheriting your read on it?
 - Does the recommendation carry its reasoning and its consequences-of-skipping, so it can be overruled on the merits? And is it phrased as a view, not an instruction?
 - Does every claim have a pointer — sha, PR, bead, file:line? Unsourced assertions get treated as facts and propagate.
 - Did you record the failures? What you tried that did not work is worth more than what worked, because the next session will otherwise try it again.
-- Is it honest? If something is broken, half-built, or was done badly under time pressure, say so plainly. A handoff that oversells state actively misleads the agent that trusts it.
+- Is it honest? If something is broken, half-built, or was done badly under time pressure, say so plainly. A pass-along that oversells state actively misleads the agent that trusts it.

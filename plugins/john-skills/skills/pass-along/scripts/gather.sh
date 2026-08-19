@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Collect the factual state a handoff document needs. Read-only — touches nothing.
+# Collect the factual state a pass-along document needs. Read-only — touches nothing.
 # Usage: scripts/gather.sh
 set -uo pipefail
 
@@ -679,7 +679,7 @@ else:
         print("session_file: %s" % active["session_file"])
 
 print("\n===== OTHER_AGENT_SESSIONS =====")
-print("(most recent session from each harness that touched this repo — a handoff should")
+print("(most recent session from each harness that touched this repo — a pass-along should")
 print(" mention work another agent may still have in flight here)")
 for name in ("claude-code", "codex", "amp", "opencode", "grok"):
     rec, _ = found.get(name, (None, None))
@@ -695,8 +695,8 @@ for name in ("claude-code", "codex", "amp", "opencode", "grok"):
 PYEOF
 fi
 
-section PREVIOUS_HANDOFF
-PREV=$(ls .handoff/*-HANDOFF.md 2>/dev/null | sort | tail -1)
+section PREVIOUS_PASS_ALONG
+PREV=$(ls .pass-along/*-PASS-ALONG.md 2>/dev/null | sort | tail -1)
 if [ -n "$PREV" ]; then
   echo "file: ${PREV#./}"
   PREV_SHA=$(grep -m1 -E '^HEAD_SHA:' "$PREV" | sed 's/^HEAD_SHA:[[:space:]]*//' | tr -d '"')
@@ -704,7 +704,7 @@ if [ -n "$PREV" ]; then
   echo "--- frontmatter ---"
   sed -n '2,/^---$/p' "$PREV" | sed '$d'
 else
-  echo "none — this is the first handoff for this project"
+  echo "none — this is the first pass-along for this project"
   PREV_SHA=""
 fi
 
@@ -731,7 +731,7 @@ git diff HEAD --stat 2>/dev/null | tail -20
 
 section COMMITS
 if [ -n "${PREV_SHA:-}" ] && git cat-file -e "${PREV_SHA}^{commit}" 2>/dev/null; then
-  echo "(since previous handoff $PREV_SHA)"
+  echo "(since previous pass-along $PREV_SHA)"
   git log --oneline --no-decorate "${PREV_SHA}..HEAD" 2>/dev/null | head -40
 else
   echo "(no usable predecessor sha — last 15)"
@@ -773,7 +773,7 @@ ls .claude/plans/*.md 2>/dev/null | tail -5
 
 section AGENT_CONFIG
 # Per-agent project config. Which of these exist tells you which harnesses this
-# repo is set up for — worth a line in the handoff when they disagree.
+# repo is set up for — worth a line in the pass-along when they disagree.
 for d in .claude .codex .agents .opencode .amp .grok .cursor .github/copilot-instructions.md; do
   [ -e "$d" ] && echo "$d"
 done
@@ -781,9 +781,9 @@ for f in opencode.json opencode.jsonc AGENT.md .amp/settings.json; do
   [ -f "$f" ] && echo "$f"
 done
 
-section HANDOFF_DIR_TRACKED
-if [ -d .handoff ]; then
-  git check-ignore -q .handoff && echo "WARNING: .handoff is gitignored but handoffs are meant to be committed" || echo ".handoff is tracked (good)"
+section PASS_ALONG_DIR_TRACKED
+if [ -d .pass-along ]; then
+  git check-ignore -q .pass-along && echo "WARNING: .pass-along is gitignored but pass-alongs are meant to be committed" || echo ".pass-along is tracked (good)"
 else
-  echo ".handoff does not exist yet — will be created"
+  echo ".pass-along does not exist yet — will be created"
 fi
