@@ -88,7 +88,7 @@ the 600 newest rollout files. For anything older, search by hand with the table 
 | Claude Code | `~/.claude/projects/<cwd with / as ->/<id>.jsonl` | JSONL, one record per line |
 | Codex CLI | `${CODEX_HOME:-~/.codex}/sessions/YYYY/MM/DD/rollout-*-<id>.jsonl` | JSONL; **not keyed by cwd** — match on the `session_meta` line |
 | Amp | `~/.local/share/amp/threads/T-*.json` (synced), else `~/.cache/amp/logs/threads/<id>.log` (live) | single JSON doc; repo is in `env.initial.trees[].uri` |
-| opencode | `~/.local/share/opencode/storage/` — `session/*/ses_*.json` carries `directory` | one JSON file per message, **text in a separate tree** |
+| opencode | `~/.local/share/opencode/opencode.db` (SQLite, ≥1.18) — `session.directory`; legacy installs use `storage/session/*/ses_*.json` | DB: message text in `part.data`. Legacy: one JSON file per message, **text in a separate tree** |
 | Grok CLI | `~/.grok/sessions/<percent-encoded cwd>/<id>/chat_history.jsonl` | JSONL; dir name is the `unquote`d cwd |
 
 Only two of the five are tail-able. Read the tail, grep for specifics, and never dump a whole
@@ -142,7 +142,26 @@ for m in (d.get("messages") or [])[-20:]:
     if isinstance(c, list): c = " ".join(b.get("text","") for b in c if isinstance(b, dict) and b.get("type") == "text")
     if c and str(c).strip(): print(str(m.get("role","?")).upper(), ":", str(c).replace("\n", " ")[:200])' <T-*.json>
 
-# opencode — message metadata and message text are in two different trees
+# opencode (>=1.18) — sessions live in SQLite; read it read-only
+python3 -c '
+import sqlite3, json, sys, os
+db = os.path.expanduser("~/.local/share/opencode/opencode.db")
+c = sqlite3.connect("file:%s?mode=ro" % db, uri=True, timeout=2)
+for sid, d, t in c.execute("select id, directory, title from session order by time_updated desc limit 10"):
+    print(sid, "|", d, "|", t)'          # pick the session whose directory is this repo
+python3 -c '
+import sqlite3, json, sys, os
+db = os.path.expanduser("~/.local/share/opencode/opencode.db")
+c = sqlite3.connect("file:%s?mode=ro" % db, uri=True, timeout=2)
+for mid, data in c.execute("select id, data from message where session_id=? order by time_created desc limit 20", (sys.argv[1],)):
+    m = json.loads(data)
+    txt = []
+    for (pd,) in c.execute("select data from part where message_id=? order by time_created", (mid,)):
+        p = json.loads(pd)
+        if p.get("type") == "text" and p.get("text"): txt.append(p["text"])
+    if txt: print(str(m.get("role","?")).upper(), ":", " ".join(txt).replace("\n", " ")[:200])' ses_XXXX
+
+# opencode (legacy json storage) — metadata and text are in two different trees
 python3 -c '
 import json, glob, os, sys
 ses = sys.argv[1]  # ses_...
@@ -158,9 +177,13 @@ for f in sorted(glob.glob(os.path.join(st, "message", ses, "msg_*.json")), key=o
 
 Traps, all hit for real:
 
-- **`msg_*.json` holds no text.** opencode stores the message record and its text separately —
-  the words live in `storage/part/<msg_id>/prt_*.json`. Reading only the message tree returns
-  metadata and looks like an empty session.
+- **The opencode JSON `storage/` tree is stale on any current install.** opencode moved to
+  SQLite around 1.18; the JSON directory is left behind at whatever version last wrote it, so
+  reading only that tree reports "no opencode sessions" for a repo that has plenty. Check
+  `opencode.db` first, and fall back to JSON only if it is absent.
+- **opencode holds no text on the message record.** In both layouts the words live in a
+  separate `part` — `part.data` in the DB, `storage/part/<msg_id>/prt_*.json` on disk. Reading
+  only the message record returns metadata and looks like an empty session.
 - **Grok has no `role` field.** Filter on `type`; `reasoning` records carry `encrypted_content`
   and are unreadable, so skip them rather than treating the session as opaque.
 - **Amp's synced thread store lags a live session badly** — the newest `threads/T-*.json` can be

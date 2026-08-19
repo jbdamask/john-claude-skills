@@ -213,6 +213,86 @@ def pick_codex():
 
 
 # ------------------------------------------------------------------ opencode
+# opencode >= ~1.18 keeps sessions in SQLite (opencode.db); the storage/*.json tree below is
+# the legacy layout and is still read as a fallback for older installs.
+def opencode_dbs():
+    xdg = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+    out = []
+    for b in (os.path.join(xdg, "opencode"), os.path.expanduser("~/.local/share/opencode"),
+              os.path.expanduser("~/.opencode")):
+        f = os.path.join(b, "opencode.db")
+        if os.path.isfile(f) and f not in out:
+            out.append(f)
+    return out
+
+
+def opencode_db_connect(path):
+    """Read-only. immutable=1 is the fallback: it ignores the -wal, so it can miss the
+    newest rows, but it opens when a plain ro attach cannot build the -shm."""
+    try:
+        import sqlite3
+    except Exception:
+        return None
+    for uri in ("file:%s?mode=ro" % path, "file:%s?mode=ro&immutable=1" % path):
+        try:
+            c = sqlite3.connect(uri, uri=True, timeout=2)
+            c.execute("select 1 from session limit 1")
+            return c
+        except Exception:
+            continue
+    return None
+
+
+def opencode_db_sessions():
+    rows = []
+    for db in opencode_dbs():
+        c = opencode_db_connect(db)
+        if c is None:
+            continue
+        try:
+            for sid, d, title, ver, tu in c.execute(
+                "select id, directory, title, version, time_updated from session"
+            ):
+                rows.append({"db": db, "session_id": sid, "cwd": d, "title": title,
+                             "version": ver, "when": (tu or 0) / 1000.0})
+        except Exception:
+            pass
+        finally:
+            c.close()
+    rows.sort(key=lambda r: r["when"], reverse=True)
+    return rows
+
+
+def opencode_db_read(row):
+    r = dict(row)
+    r["harness"] = "opencode"
+    c = opencode_db_connect(row["db"])
+    if c is not None:
+        try:
+            for (data,) in c.execute(
+                "select data from message where session_id=? order by time_created desc limit 60",
+                (row["session_id"],),
+            ):
+                try:
+                    d = json.loads(data)
+                except Exception:
+                    continue
+                if d.get("role") != "assistant" or not d.get("modelID"):
+                    continue
+                r["model"] = d.get("modelID")
+                r["provider"] = d.get("providerID")
+                r["mode"] = d.get("agent") or d.get("mode")
+                r["mode_kind"] = "opencode agent mode"
+                break
+        except Exception:
+            pass
+        finally:
+            c.close()
+    r["transcript"] = "%s  (sqlite; session %s)" % (row["db"], row["session_id"])
+    r.setdefault("effort", None)  # opencode records agent mode, not reasoning effort
+    return r
+
+
 def opencode_storages():
     xdg = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
     bases, out = [], []
@@ -293,10 +373,15 @@ def opencode_project_cwd(row):
 
 
 def pick_opencode():
+    for row in opencode_db_sessions():
+        if within(row.get("cwd"), REPO):
+            return (opencode_db_read(row),
+                    "newest opencode session in opencode.db whose directory matches this repo")
     for row in opencode_sessions():
         row["cwd"] = opencode_project_cwd(row)
         if within(row.get("cwd"), REPO):
-            return opencode_read(row), "newest opencode session whose directory matches this repo"
+            return (opencode_read(row),
+                    "newest opencode session (legacy json storage) whose directory matches this repo")
     return None, None
 
 
@@ -624,7 +709,16 @@ else
 fi
 
 section GIT
-echo "remote:  $(git remote get-url origin 2>/dev/null || echo 'no origin')"
+# REPO is the remote's owner/name. A local directory is NOT a repo identity — when there is no
+# origin, REPO stays blank and WORKING_DIR carries the path instead.
+_origin=$(git remote get-url origin 2>/dev/null || true)
+if [ -n "$_origin" ]; then
+  echo "repo:    $(printf '%s' "$_origin" | sed -E 's#^git@[^:]+:##; s#^ssh://[^/]+/##; s#^https?://[^/]+/##; s#\.git$##')"
+else
+  echo "repo:    (none — no origin remote; leave REPO blank, do not put the path here)"
+fi
+echo "working_dir: $ROOT"
+echo "remote:  ${_origin:-no origin}"
 echo "branch:  $(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'not a git repo')"
 echo "head:    $(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 echo "upstream:$(git rev-parse --abbrev-ref '@{u}' 2>/dev/null || echo 'no upstream')"

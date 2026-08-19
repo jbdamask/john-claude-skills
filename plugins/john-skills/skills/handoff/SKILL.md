@@ -40,7 +40,8 @@ MODEL: claude-opus-5         # the API model id, not a harness label
 MODEL_EFFORT: high           # low | medium | high | xhigh | max
 HARNESS: claude-code 2.1.235  # or codex 0.148.0 | amp | opencode 1.1.53 | grok 1.0.5
 SESSION_ID: d14bf04b-e7f1-4a20-b851-e0f5abb0c04e
-REPO: jbdamask/john-claude-skills
+REPO: jbdamask/john-claude-skills   # owner/name from the origin remote; blank if there is none
+WORKING_DIR: /Users/j/code/john-claude-skills   # where the work happened; omit if same-as-obvious
 BRANCH: feat/pack-registry
 HEAD_SHA: 1578eff
 UPSTREAM: origin/feat/pack-registry (ahead 2)
@@ -69,7 +70,7 @@ Rules for the fields:
     | Claude Code | `$CLAUDE_CODE_SESSION_ID` | `~/.claude/projects/<cwd with / as ->/<id>.jsonl` | `message.model`, top-level `effort`, `version` |
     | Codex CLI | `$CODEX_SESSION_ID`, `$CODEX_THREAD_ID` | `$CODEX_HOME/sessions/YYYY/MM/DD/rollout-*-<id>.jsonl` | `turn_context.payload.model`; effort often absent |
     | Amp | `$AMP_CURRENT_THREAD_ID` | `~/.local/share/amp/threads/T-*.json`, else `~/.cache/amp/logs/threads/<id>.log` | last `messages[].usage.model`; `agentMode` is the effort analogue |
-    | opencode | none | `~/.local/share/opencode/storage/session/*/ses_*.json` + `message/<id>/*.json` | `modelID` / `providerID`; `agent` mode, no reasoning effort |
+    | opencode | none | `~/.local/share/opencode/opencode.db` (SQLite, ≥1.18); legacy installs use `storage/session/*/ses_*.json` | `modelID` / `providerID` off the newest assistant `message.data`; `agent` mode, no reasoning effort |
     | Grok CLI | none | `~/.grok/sessions/<percent-encoded cwd>/<id>/summary.json` | `current_model_id` (or `model_id` in `chat_history.jsonl`), `reasoning_effort` |
 
   - **Codex, opencode and Grok record the session's cwd**, so the script matches sessions to this repo by path. **Amp and Claude Code key off an env var or the workspace root.** A session opened at a parent directory does not count as this repo's.
@@ -77,6 +78,10 @@ Rules for the fields:
   - **On a harness not in that table**: look for an equivalent local transcript or env var before falling back to `unknown`.
 - **OTHER_AGENT_SESSIONS** — the script also reports the most recent session *each other harness* had in this repo. If another agent was working here recently, say so in `## May have moved since I stopped`; the next session may be walking into someone else's uncommitted work. A row marked `workspace unverified` is a session the script could see but could not tie to this repo — don't assert it as fact.
 - **HARNESS / SESSION_ID** — which agent tool ran the session, and its transcript identity. `SESSION_ID` is what lets a later session go read the raw log when this handoff leaves a gap. Omit both if the harness doesn't expose them.
+- **REPO / WORKING_DIR** — `REPO` is the remote's `owner/name`, and nothing else. If the directory
+  has no origin remote, **leave `REPO` blank** — a local path is not a repo identity, and writing
+  one there makes an unpushed scratch directory look like a project a later reader can clone.
+  Put the path in `WORKING_DIR` instead. `gather.sh` prints both, already resolved.
 - **HEAD_SHA** — the single most important field. session-recap uses it to run `git log <HEAD_SHA>..HEAD` and detect anything that landed *after* this handoff was written.
 - **OPEN_LOOPS** — one line per thread this session left unclosed, in the order you happen to think of them. A neutral inventory, not a ranking. Empty only if you genuinely finished everything.
 - **RECOMMENDED_NEXT** — one sentence: what you'd pick up first, if it were your call. It isn't your call, and the wording should not pretend otherwise. Omit it if you have no real basis for one — a fabricated recommendation is worse than none.
