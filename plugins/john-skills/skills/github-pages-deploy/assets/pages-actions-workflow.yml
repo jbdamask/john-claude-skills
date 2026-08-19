@@ -1,0 +1,53 @@
+# Publish an arbitrary directory to GitHub Pages via Actions.
+#
+# Use this when the branch-based publisher won't do — it only accepts the repo
+# root or /docs, so a site living in site/, public/, dist/, or built by a tool
+# needs this instead.
+#
+# Setup:
+#   1. Copy to .github/workflows/pages.yml
+#   2. Set `path:` below to the directory that contains index.html
+#   3. Switch the repo to the Actions builder:
+#        gh api --method PUT repos/OWNER/REPO/pages -f build_type=workflow
+#      (or POST instead of PUT if Pages isn't enabled yet)
+#   4. Commit and push. Pushing a workflow file needs `workflow` token scope —
+#      `gh auth refresh -s workflow` if git rejects the push.
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish rather than cancelling it, but never queue more
+# than one pending run — the newest commit is the one worth publishing.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Add a build step here if the site is generated rather than committed,
+      # then point `path:` below at the build output.
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site # <-- the directory containing index.html
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
