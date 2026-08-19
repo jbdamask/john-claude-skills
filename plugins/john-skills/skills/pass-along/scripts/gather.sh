@@ -519,11 +519,21 @@ def pick_amp():
                 return amp_read(f)
         return None
 
-    env_id = os.environ.get("AMP_CURRENT_THREAD_ID") or os.environ.get("AMP_THREAD_ID")
+    env_var = next((v for v in ("AMP_CURRENT_THREAD_ID", "AMP_THREAD_ID")
+                    if os.environ.get(v)), None)
+    env_id = os.environ.get(env_var) if env_var else None
     if env_id:
         rec = by_id(env_id) or amp_live(env_id, cache_root)
         if rec:
-            return rec, "$AMP_CURRENT_THREAD_ID"
+            # $AMP_PWD is amp's own record of where the session is running
+            pwd = os.environ.get("AMP_PWD")
+            if pwd:
+                rec["cwd"] = rec.get("cwd") or pwd
+                if within(pwd, REPO):
+                    rec.pop("unverified", None)
+                    return rec, "$%s (workspace confirmed by $AMP_PWD)" % env_var
+                return rec, "$%s ($AMP_PWD is %s, not this repo)" % (env_var, pwd)
+            return rec, "$" + env_var
     for f in files:
         rec = amp_read(f)
         if rec and any(within(c, REPO) for c in (rec.get("cwds") or [])):
@@ -668,18 +678,22 @@ for name in env_order:
         break
 
 if active is None:
-    best = [(0 if r.get("unverified") else 1, r["when"], n, r, h)
-            for n, (r, h) in found.items() if r and r.get("when")]
+    # Inference may only pick a session whose workspace is confirmed to be this repo.
+    # An unverified guess that turns out to be another repo puts a wrong HARNESS and
+    # SESSION_ID into the document, which is worse than reporting nothing; those
+    # candidates still show up under OTHER_AGENT_SESSIONS.
+    best = [(r["when"], n, r, h) for n, (r, h) in found.items()
+            if r and r.get("when") and not r.get("unverified")]
     if best:
         best.sort(reverse=True)
-        _, _, _, active, via = best[0]
+        _, _, active, via = best[0]
         via = "INFERRED — %s; verify this is your session" % via
     elif env_order:
         active = {"harness": env_order[0]}
         via = "environment variable (no session record found for this repo)"
 
 if active is None:
-    print("harness: unknown — no Claude Code / Codex / opencode session record for this repo")
+    print("harness: unknown — no confirmed session record for this repo from any of the five")
     print("(self-report model/effort, or write 'unknown')")
 else:
     label = active.get("harness", "unknown")

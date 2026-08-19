@@ -84,7 +84,7 @@ Rules for the fields:
     |---|---|---|---|---|
     | Claude Code | `CLAUDE_CONFIG_DIR` relocates all of it | `~/.claude/projects/<cwd, / as ->/<id>.jsonl` | `%USERPROFILE%\.claude\...` | `message.model`, top-level `effort`, `version` |
     | Codex CLI | `CODEX_HOME` | `~/.codex/sessions/YYYY/MM/DD/rollout-*-<id>.jsonl` | `%USERPROFILE%\.codex\...` | `turn_context.payload.model`; effort often absent |
-    | Amp | `AMP_HOME` (unverified) | `~/.local/share/amp/threads/T-*.json`, else `~/.cache/amp/logs/threads/<id>.log` | tries the same unix-style layout, then `%LOCALAPPDATA%`/`%APPDATA%` | last `messages[].usage.model`; `agentMode` is the effort analogue |
+    | Amp | `AMP_HOME`, `AMP_PWD` | `~/.local/share/amp/threads/T-*.json`, else `~/.cache/amp/logs/threads/<id>.log` | tries the same unix-style layout, then `%LOCALAPPDATA%`/`%APPDATA%` | last `messages[].usage.model`; `agentMode` is the effort analogue |
     | opencode | `OPENCODE_DB` | `$XDG_DATA_HOME/opencode/opencode.db` (SQLite, ≥1.18); legacy `storage/session/*/ses_*.json` | `%LOCALAPPDATA%\opencode\data\opencode.db` | `modelID` / `providerID` off the newest assistant message; `agent` mode, no reasoning effort |
     | Grok CLI | `GROK_HOME` | `~/.grok/sessions/<percent-encoded cwd>/<id>/summary.json` | `%USERPROFILE%\.grok\...` | `current_model_id` (or `model_id` in `chat_history.jsonl`), `reasoning_effort` |
 
@@ -102,6 +102,10 @@ Rules for the fields:
     than a native Windows install writes; a session started on one side is invisible from the
     other.
   - **Codex, opencode and Grok record the session's cwd**, so the script matches sessions to this repo by path. **Amp and Claude Code key off an env var or the workspace root.** A session opened at a parent directory does not count as this repo's.
+  - **Inference never picks an unconfirmed session.** A candidate whose workspace cannot be
+    tied to this repo is reported under `OTHER_AGENT_SESSIONS`, never as the active session —
+    a wrong `HARNESS`/`SESSION_ID` pair is worse than `unknown`, because the next reader
+    trusts it. If the block says `unknown`, write `unknown`.
   - **`detected_via` tells you how much to trust the block.** An env var or grok's `active_sessions.json` is direct evidence. `INFERRED` means the script guessed from the most recent matching session — check the session id is really yours before copying it into frontmatter.
   - **On a harness not in that table**: look for an equivalent local transcript or env var before falling back to `unknown`.
 - **OTHER_AGENT_SESSIONS** — the script also reports the most recent session *each other harness* had in this repo. If another agent was working here recently, say so in `## May have moved since I stopped`; the next session may be walking into someone else's uncommitted work. A row marked `workspace unverified` is a session the script could see but could not tie to this repo — don't assert it as fact.
