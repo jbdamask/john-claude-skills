@@ -643,102 +643,92 @@ def pick_grok():
 
 
 # -------------------------------------------------------------------- cursor
-# Cursor CLI keeps each chat in its own SQLite store under ~/.cursor/chats. The model lives in
-# an assistant message's providerOptions.cursor.modelName. Contributed by the user from a
-# working query on their machine; there was no ~/.cursor/chats on the machine this was ported
-# on, so the layout below is unverified here — see the note pick_cursor attaches.
+# Cursor CLI: ~/.cursor/chats/<workspace-hash>/<chat-id>/ holds store.db plus a meta.json that
+# records the workspace cwd directly. The chat id is what `cursor-agent --resume=<id>` takes.
+# The binary installs to ~/.local/share/cursor-agent/versions/<version>/ (chats are created on
+# first run, not at install). Verified against a live session on macOS.
 def cursor_home():
     return os.environ.get("CURSOR_HOME") or os.path.expanduser("~/.cursor")
 
 
-def cursor_stores():
-    """~/.cursor/chats/<a>/<b>/store.db — newest first, by the -wal when it is more recent."""
-    out = []
-    for db in glob.glob(os.path.join(cursor_home(), "chats", "*", "*", "store.db")):
-        out.append((max(mtime(db), mtime(db + "-wal")), db))
-    out.sort(reverse=True)
-    return [db for _, db in out]
+def cursor_version():
+    root = os.path.expanduser("~/.local/share/cursor-agent/versions")
+    vs = [os.path.basename(d) for d in glob.glob(os.path.join(root, "*"))
+          if os.path.isdir(d) and not os.path.basename(d).startswith(".")]
+    return sorted(vs)[-1] if vs else None
 
 
-def cursor_rows(db, cap=4000):
+def cursor_chats():
+    """Newest first. meta.json is authoritative for the workspace; store.db carries the model."""
+    rows = []
+    for meta in glob.glob(os.path.join(cursor_home(), "chats", "*", "*", "meta.json")):
+        d = os.path.dirname(meta)
+        try:
+            j = json.load(open(meta, errors="replace")) or {}
+        except Exception:
+            j = {}
+        db = os.path.join(d, "store.db")
+        when = (j.get("updatedAtMs") or j.get("createdAtMs") or 0) / 1000.0
+        if not when:
+            when = max(mtime(db), mtime(db + "-wal"))
+        rows.append({"dir": d, "db": db, "session_id": os.path.basename(d),
+                     "cwd": j.get("cwd"), "title": j.get("title"), "when": when})
+    rows.sort(key=lambda r: r["when"], reverse=True)
+    return rows
+
+
+def cursor_model(db):
     try:
         import sqlite3
     except Exception:
-        return
+        return None
     for uri in ("file:%s?mode=ro" % db, "file:%s?mode=ro&immutable=1" % db):
         try:
             c = sqlite3.connect(uri, uri=True, timeout=2)
         except Exception:
             continue
         try:
-            for (blob,) in c.execute("select data from blobs order by rowid desc limit ?", (cap,)):
+            for (blob,) in c.execute("select data from blobs order by rowid desc"):
                 if isinstance(blob, (bytes, bytearray)):
                     blob = blob.decode("utf-8", "replace")
                 try:
-                    yield json.loads(blob)
+                    d = json.loads(blob)
                 except Exception:
                     continue
-            return
+                if not isinstance(d, dict) or d.get("role") != "assistant":
+                    continue
+                for part in d.get("content") or []:
+                    if isinstance(part, dict):
+                        name = (((part.get("providerOptions") or {}).get("cursor") or {})
+                                .get("modelName"))
+                        if name:
+                            return name
         except Exception:
-            return
+            return None
         finally:
             c.close()
+    return None
 
 
-def cursor_read(db):
-    model = cwd = None
-    for d in cursor_rows(db):
-        if not isinstance(d, dict):
-            continue
-        if model is None and d.get("role") == "assistant":
-            for part in d.get("content") or []:
-                if not isinstance(part, dict):
-                    continue
-                name = (((part.get("providerOptions") or {}).get("cursor") or {})
-                        .get("modelName"))
-                if name:
-                    model = name
-                    break
-        if cwd is None:
-            for k in ("cwd", "workspacePath", "workspaceRoot", "rootPath", "projectRoot"):
-                v = d.get(k)
-                if isinstance(v, str) and v.startswith("/"):
-                    cwd = v
-                    break
-        if model and cwd:
-            break
-    if cwd is None:
-        # some agents encode the workspace in the directory name (grok does); cheap to try
-        cand = unquote(os.path.basename(os.path.dirname(os.path.dirname(db))))
-        if cand.startswith("/") and os.path.isdir(cand):
-            cwd = cand
+def cursor_read(row):
     return {
         "harness": "cursor",
-        "version": None,
-        "session_id": os.path.basename(os.path.dirname(db)),
-        "model": model,
-        "effort": None,
-        "cwd": cwd,
-        "transcript": db,
-        "when": max(mtime(db), mtime(db + "-wal")),
+        "version": cursor_version(),
+        "session_id": row["session_id"],
+        "model": cursor_model(row["db"]),
+        "effort": None,       # cursor records no reasoning effort
+        "cwd": row["cwd"],
+        "title": row["title"],
+        "transcript": row["db"],
+        "when": row["when"],
     }
 
 
 def pick_cursor():
-    stores = cursor_stores()
-    if not stores:
-        return None, None
-    for db in stores:
-        rec = cursor_read(db)
-        if within(rec.get("cwd"), REPO):
-            return rec, "newest cursor chat whose workspace matches this repo"
-    # No store recorded a workspace we could match. Report the newest as a candidate, but
-    # unverified — the resolver will never promote it to the active session on its own.
-    rec = cursor_read(stores[0])
-    rec["unverified"] = True
-    rec["note"] = ("cursor store records no workspace this script recognises — "
-                   "may be another repo")
-    return rec, "newest cursor chat (workspace unverified)"
+    for row in cursor_chats():
+        if within(row.get("cwd"), REPO):
+            return cursor_read(row), "newest cursor chat whose meta.json cwd matches this repo"
+    return None, None
 
 
 # ------------------------------------------------------------------- resolve

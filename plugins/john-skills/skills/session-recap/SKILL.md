@@ -98,7 +98,7 @@ the 600 newest rollout files. For anything older, search by hand with the table 
 | Amp | `~/.local/share/amp/threads/T-*.json` (synced), else `~/.cache/amp/logs/threads/<id>.log` (live) | single JSON doc; repo is in `env.initial.trees[].uri` |
 | opencode | `$XDG_DATA_HOME/opencode/opencode.db` (SQLite, ≥1.18), or `OPENCODE_DB`; Windows `%LOCALAPPDATA%\opencode\data`. Legacy installs use `storage/session/*/ses_*.json` | DB: message text in `part.data`. Legacy: one JSON file per message, **text in a separate tree** |
 | Grok CLI | `${GROK_HOME:-~/.grok}/sessions/<percent-encoded cwd>/<id>/chat_history.jsonl` | JSONL; dir name is the `unquote`d cwd |
-| Cursor CLI | `${CURSOR_HOME:-~/.cursor}/chats/<a>/<b>/store.db` | SQLite; JSON blobs in a `blobs` table, model on `providerOptions.cursor.modelName` |
+| Cursor CLI | `${CURSOR_HOME:-~/.cursor}/chats/<workspace-hash>/<chat-id>/` — `meta.json` gives `cwd` and `title` | `store.db` is SQLite; JSON blobs in a `blobs` table, model on `providerOptions.cursor.modelName` |
 
 The home directories and env overrides above are vendor-documented; **the layouts inside them are
 not** — they were read off live installs and have already moved once (opencode's JSON tree became

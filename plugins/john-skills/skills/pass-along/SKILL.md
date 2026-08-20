@@ -90,13 +90,14 @@ Rules for the fields:
     | Amp | `AMP_HOME`, `AMP_PWD` | `~/.local/share/amp/threads/T-*.json`, else `~/.cache/amp/logs/threads/<id>.log` | tries the same unix-style layout, then `%LOCALAPPDATA%`/`%APPDATA%` | last `messages[].usage.model`; `agentMode` is the effort analogue |
     | opencode | `OPENCODE_DB` | `$XDG_DATA_HOME/opencode/opencode.db` (SQLite, ≥1.18); legacy `storage/session/*/ses_*.json` | `%LOCALAPPDATA%\opencode\data\opencode.db` | `modelID` / `providerID` off the newest assistant message; `agent` mode, no reasoning effort |
     | Grok CLI | `GROK_HOME` | `~/.grok/sessions/<percent-encoded cwd>/<id>/summary.json` | `%USERPROFILE%\.grok\...` | `current_model_id` (or `model_id` in `chat_history.jsonl`), `reasoning_effort` |
-    | Cursor CLI | `CURSOR_HOME` | `~/.cursor/chats/<a>/<b>/store.db` (SQLite) | `%USERPROFILE%\.cursor\...` | `providerOptions.cursor.modelName` on an assistant blob; no effort recorded |
+    | Cursor CLI | `CURSOR_HOME` | `~/.cursor/chats/<workspace-hash>/<chat-id>/` — `meta.json` has `cwd`+`title`, `store.db` has the model | `%USERPROFILE%\.cursor\...` | `providerOptions.cursor.modelName` on an assistant blob in `store.db`; no effort recorded |
 
-  - **Cursor's store is the least verified of the six.** The query came from the user, working
-    on their machine; it was ported to python3 here (their version used `find -printf`, which
-    is GNU-only and fails on macOS) and exercised against a fixture, not a real install. If
-    a Cursor chat records no workspace the probe recognises, it is reported unverified and
-    can never be selected as the active session.
+  - **Cursor writes its chats only on first run**, not at install — the installer just drops the
+    binary in `~/.local/share/cursor-agent/versions/<version>/`, which is where the reported
+    version comes from. An install with no sessions yet has no `~/.cursor/chats` at all.
+    `meta.json` records the workspace directly, so cursor sessions match this repo by `cwd`
+    like codex, opencode and grok rather than needing an env var. `session_id` is the chat id
+    `cursor-agent --resume=<id>` accepts.
   - **How much of that is documented.** The env overrides, the four home directories and
     opencode's Windows location are vendor-documented. **The per-harness file layouts inside
     those directories are not** — Amp's thread store especially is undocumented, and everything

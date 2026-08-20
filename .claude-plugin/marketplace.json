@@ -13,7 +13,7 @@
       "name": "john-skills",
       "source": "./plugins/john-skills",
       "description": "Development workflow tools: skills for devlog, pass-along, session-recap, mcp-scanner, cringephobe, architecture-decision-records, and more",
-      "version": "1.5.9"
+      "version": "1.5.10"
     },
     {
       "name": "context-analyzer",
