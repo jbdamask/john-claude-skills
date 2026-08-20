@@ -68,20 +68,20 @@ Check for whichever of these exist: `DEVLOG.md`, `CHANGELOG.md`, `PLAN.md`, `.cl
 
 ### Agent chat history
 
-**Do not assume the last session was Claude Code.** Five harnesses keep local transcripts, and a
+**Do not assume the last session was Claude Code.** Six harnesses keep local transcripts, and a
 repo can have several of them in its history. If a pass-along is present, its `HARNESS` and
 `SESSION_ID` name the exact one — read that and skip the search.
 
 Fastest way to find what exists: the companion `pass-along` skill's gather script, which is
-read-only and already resolves all five. It sits beside this skill, in the same plugin:
+read-only and already resolves all six. It sits beside this skill, in the same plugin:
 
 ```bash
 bash "<this skill's directory>/../pass-along/scripts/gather.sh"
 ```
 
-Under Claude Code the placeholder below works too — it is substituted into skill content at load
-time. It is **not** a shell variable, and no other harness expands it; if it reaches a shell
-intact the path collapses to `/skills/...` and fails.
+Under Claude Code the line below works too — the plugin-root placeholder in it is replaced with
+an absolute path when this file loads. It is **not** a shell variable, and no other harness
+expands it; if it reaches a shell intact the path collapses to `/skills/...` and fails.
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/skills/pass-along/scripts/gather.sh"
@@ -98,6 +98,7 @@ the 600 newest rollout files. For anything older, search by hand with the table 
 | Amp | `~/.local/share/amp/threads/T-*.json` (synced), else `~/.cache/amp/logs/threads/<id>.log` (live) | single JSON doc; repo is in `env.initial.trees[].uri` |
 | opencode | `$XDG_DATA_HOME/opencode/opencode.db` (SQLite, ≥1.18), or `OPENCODE_DB`; Windows `%LOCALAPPDATA%\opencode\data`. Legacy installs use `storage/session/*/ses_*.json` | DB: message text in `part.data`. Legacy: one JSON file per message, **text in a separate tree** |
 | Grok CLI | `${GROK_HOME:-~/.grok}/sessions/<percent-encoded cwd>/<id>/chat_history.jsonl` | JSONL; dir name is the `unquote`d cwd |
+| Cursor CLI | `${CURSOR_HOME:-~/.cursor}/chats/<a>/<b>/store.db` | SQLite; JSON blobs in a `blobs` table, model on `providerOptions.cursor.modelName` |
 
 The home directories and env overrides above are vendor-documented; **the layouts inside them are
 not** — they were read off live installs and have already moved once (opencode's JSON tree became
@@ -105,7 +106,7 @@ SQLite). If a harness looks unused for a repo you know it worked in, suspect the
 concluding there is no history. On Windows this all assumes Git Bash or WSL, and WSL sessions are
 a separate set from native-Windows ones.
 
-Only two of the five are tail-able. Read the tail, grep for specifics, and never dump a whole
+Only two of the six are tail-able (Cursor is SQLite, like opencode). Read the tail, grep for specifics, and never dump a whole
 session into context.
 
 ```bash

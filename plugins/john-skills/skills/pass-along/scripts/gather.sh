@@ -18,7 +18,7 @@ echo "iso:   $(date +'%Y-%m-%dT%H:%M:%S%z')"
 
 section SESSION
 # Model, effort, and session identity, read from the harness rather than self-reported.
-# Claude Code, Codex CLI, opencode, Amp, and Grok CLI all keep a local session record; this
+# Claude Code, Codex, opencode, Amp, Grok and Cursor all keep a local session record; this
 # resolves whichever one is running, then falls back to inferring it from the most recent
 # session that touched this repo.
 if ! command -v python3 >/dev/null 2>&1; then
@@ -642,9 +642,108 @@ def pick_grok():
     return None, None
 
 
+# -------------------------------------------------------------------- cursor
+# Cursor CLI keeps each chat in its own SQLite store under ~/.cursor/chats. The model lives in
+# an assistant message's providerOptions.cursor.modelName. Contributed by the user from a
+# working query on their machine; there was no ~/.cursor/chats on the machine this was ported
+# on, so the layout below is unverified here — see the note pick_cursor attaches.
+def cursor_home():
+    return os.environ.get("CURSOR_HOME") or os.path.expanduser("~/.cursor")
+
+
+def cursor_stores():
+    """~/.cursor/chats/<a>/<b>/store.db — newest first, by the -wal when it is more recent."""
+    out = []
+    for db in glob.glob(os.path.join(cursor_home(), "chats", "*", "*", "store.db")):
+        out.append((max(mtime(db), mtime(db + "-wal")), db))
+    out.sort(reverse=True)
+    return [db for _, db in out]
+
+
+def cursor_rows(db, cap=4000):
+    try:
+        import sqlite3
+    except Exception:
+        return
+    for uri in ("file:%s?mode=ro" % db, "file:%s?mode=ro&immutable=1" % db):
+        try:
+            c = sqlite3.connect(uri, uri=True, timeout=2)
+        except Exception:
+            continue
+        try:
+            for (blob,) in c.execute("select data from blobs order by rowid desc limit ?", (cap,)):
+                if isinstance(blob, (bytes, bytearray)):
+                    blob = blob.decode("utf-8", "replace")
+                try:
+                    yield json.loads(blob)
+                except Exception:
+                    continue
+            return
+        except Exception:
+            return
+        finally:
+            c.close()
+
+
+def cursor_read(db):
+    model = cwd = None
+    for d in cursor_rows(db):
+        if not isinstance(d, dict):
+            continue
+        if model is None and d.get("role") == "assistant":
+            for part in d.get("content") or []:
+                if not isinstance(part, dict):
+                    continue
+                name = (((part.get("providerOptions") or {}).get("cursor") or {})
+                        .get("modelName"))
+                if name:
+                    model = name
+                    break
+        if cwd is None:
+            for k in ("cwd", "workspacePath", "workspaceRoot", "rootPath", "projectRoot"):
+                v = d.get(k)
+                if isinstance(v, str) and v.startswith("/"):
+                    cwd = v
+                    break
+        if model and cwd:
+            break
+    if cwd is None:
+        # some agents encode the workspace in the directory name (grok does); cheap to try
+        cand = unquote(os.path.basename(os.path.dirname(os.path.dirname(db))))
+        if cand.startswith("/") and os.path.isdir(cand):
+            cwd = cand
+    return {
+        "harness": "cursor",
+        "version": None,
+        "session_id": os.path.basename(os.path.dirname(db)),
+        "model": model,
+        "effort": None,
+        "cwd": cwd,
+        "transcript": db,
+        "when": max(mtime(db), mtime(db + "-wal")),
+    }
+
+
+def pick_cursor():
+    stores = cursor_stores()
+    if not stores:
+        return None, None
+    for db in stores:
+        rec = cursor_read(db)
+        if within(rec.get("cwd"), REPO):
+            return rec, "newest cursor chat whose workspace matches this repo"
+    # No store recorded a workspace we could match. Report the newest as a candidate, but
+    # unverified — the resolver will never promote it to the active session on its own.
+    rec = cursor_read(stores[0])
+    rec["unverified"] = True
+    rec["note"] = ("cursor store records no workspace this script recognises — "
+                   "may be another repo")
+    return rec, "newest cursor chat (workspace unverified)"
+
+
 # ------------------------------------------------------------------- resolve
 PICKERS = {"claude-code": pick_claude, "codex": pick_codex, "amp": pick_amp,
-           "opencode": pick_opencode, "grok": pick_grok}
+           "opencode": pick_opencode, "grok": pick_grok, "cursor": pick_cursor}
 
 env_order = []
 if os.environ.get("CLAUDE_CODE_SESSION_ID"):
@@ -655,6 +754,8 @@ if os.environ.get("AMP_CURRENT_THREAD_ID") or os.environ.get("AMP_THREAD_ID"):
     env_order.append("amp")
 if any(k.startswith("OPENCODE_") for k in os.environ):
     env_order.append("opencode")
+if any(k.startswith("CURSOR_") for k in os.environ):
+    env_order.append("cursor")
 # grok exposes no session env var; an open session registered against this repo is
 # the equivalent signal
 if grok_running_here():
@@ -693,7 +794,7 @@ if active is None:
         via = "environment variable (no session record found for this repo)"
 
 if active is None:
-    print("harness: unknown — no confirmed session record for this repo from any of the five")
+    print("harness: unknown — no confirmed session record for this repo from any of the six")
     print("(self-report model/effort, or write 'unknown')")
 else:
     label = active.get("harness", "unknown")
@@ -728,7 +829,7 @@ else:
 print("\n===== OTHER_AGENT_SESSIONS =====")
 print("(most recent session from each harness that touched this repo — a pass-along should")
 print(" mention work another agent may still have in flight here)")
-for name in ("claude-code", "codex", "amp", "opencode", "grok"):
+for name in ("claude-code", "codex", "amp", "opencode", "grok", "cursor"):
     rec, _ = found.get(name, (None, None))
     if active is not None and rec is not None and rec.get("transcript") == active.get("transcript"):
         print("%-12s this session" % (name + ":"))

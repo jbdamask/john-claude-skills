@@ -26,9 +26,12 @@ is when it loads the skill.
 bash "<this skill's directory>/scripts/gather.sh"
 ```
 
-Under Claude Code you can write the line below instead: `${CLAUDE_PLUGIN_ROOT}` is a placeholder
-Claude Code substitutes into skill content at load time, so by the time you read this it is
-already an absolute path.
+Under Claude Code you can write the line below instead. It uses the plugin-root placeholder
+— the name `CLAUDE_PLUGIN_ROOT` wrapped in `${…}` braces — which Claude Code replaces with an
+absolute path when it loads this file, so by the time you read it the path is already filled
+in. (That substitution is why this paragraph spells the name out instead of showing the
+token: written literally, it would be replaced here too, and the sentence would describe a
+path instead of a placeholder.)
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/skills/pass-along/scripts/gather.sh"
@@ -78,7 +81,7 @@ Rules for the fields:
 
 - **MODEL / MODEL_EFFORT** — take these from the harness, not from self-report. Most coding agents record the model and reasoning effort in a local session transcript or in the environment, and that record is authoritative in a way your own introspection isn't: it carries the exact model id rather than a display name, and effort is usually not visible to you at all. `gather.sh` resolves them where it can. Precedence: harness transcript or environment → your own session context → `unknown`. Never guess a model id.
   - **MODEL** must be the id an API would accept (`claude-opus-5`), not a harness label. Claude Code shows the running model as `claude-opus-5[1m]`, where `[1m]` marks the 1M-context session variant — that suffix is client-side notation and is not a valid model id. The transcript's `message.model` has the clean value; use it.
-  - `gather.sh` resolves five harnesses. Where it prints `unknown`, write `unknown` — that is the honest answer, and better than a plausible guess a later reader would trust.
+  - `gather.sh` resolves six harnesses. Where it prints `unknown`, write `unknown` — that is the honest answer, and better than a plausible guess a later reader would trust.
 
     | Harness | Env override | mac / Linux | Windows | Model / effort |
     |---|---|---|---|---|
@@ -87,7 +90,13 @@ Rules for the fields:
     | Amp | `AMP_HOME`, `AMP_PWD` | `~/.local/share/amp/threads/T-*.json`, else `~/.cache/amp/logs/threads/<id>.log` | tries the same unix-style layout, then `%LOCALAPPDATA%`/`%APPDATA%` | last `messages[].usage.model`; `agentMode` is the effort analogue |
     | opencode | `OPENCODE_DB` | `$XDG_DATA_HOME/opencode/opencode.db` (SQLite, ≥1.18); legacy `storage/session/*/ses_*.json` | `%LOCALAPPDATA%\opencode\data\opencode.db` | `modelID` / `providerID` off the newest assistant message; `agent` mode, no reasoning effort |
     | Grok CLI | `GROK_HOME` | `~/.grok/sessions/<percent-encoded cwd>/<id>/summary.json` | `%USERPROFILE%\.grok\...` | `current_model_id` (or `model_id` in `chat_history.jsonl`), `reasoning_effort` |
+    | Cursor CLI | `CURSOR_HOME` | `~/.cursor/chats/<a>/<b>/store.db` (SQLite) | `%USERPROFILE%\.cursor\...` | `providerOptions.cursor.modelName` on an assistant blob; no effort recorded |
 
+  - **Cursor's store is the least verified of the six.** The query came from the user, working
+    on their machine; it was ported to python3 here (their version used `find -printf`, which
+    is GNU-only and fails on macOS) and exercised against a fixture, not a real install. If
+    a Cursor chat records no workspace the probe recognises, it is reported unverified and
+    can never be selected as the active session.
   - **How much of that is documented.** The env overrides, the four home directories and
     opencode's Windows location are vendor-documented. **The per-harness file layouts inside
     those directories are not** — Amp's thread store especially is undocumented, and everything
