@@ -677,7 +677,10 @@ def cursor_chats():
     return rows
 
 
-def cursor_model(db):
+def cursor_connect(db):
+    """sqlite3.connect() is lazy — it succeeds on a file it cannot actually open, and the error
+    only lands on the first query. So each candidate has to be probed with a real read. A
+    cleanly-closed WAL database with no -wal/-shm sidecar opens only as immutable."""
     try:
         import sqlite3
     except Exception:
@@ -685,8 +688,16 @@ def cursor_model(db):
     for uri in ("file:%s?mode=ro" % db, "file:%s?mode=ro&immutable=1" % db):
         try:
             c = sqlite3.connect(uri, uri=True, timeout=2)
+            c.execute("select 1 from blobs limit 1")
+            return c
         except Exception:
             continue
+    return None
+
+
+def cursor_model(db):
+    c = cursor_connect(db)
+    if c is not None:
         try:
             for (blob,) in c.execute("select data from blobs order by rowid desc"):
                 if isinstance(blob, (bytes, bytearray)):
@@ -704,7 +715,7 @@ def cursor_model(db):
                         if name:
                             return name
         except Exception:
-            return None
+            pass
         finally:
             c.close()
     return None
