@@ -5,34 +5,35 @@ description: Maintain durable project memories as files in the repo, using the l
 
 # Project Memories
 
-Maintain durable project knowledge as files that live and travel with the repo: one markdown file per memory under `docs/memories/`, indexed by `docs/memories/llms.txt`. This replaces ad-hoc memory mechanisms — `bd remember`, a stray notes file, an agent's own session memory — for anything that should outlive the session and the tool that recorded it.
+Keep durable project knowledge in files that travel with the repo: one markdown file per memory under `docs/memories/`, indexed by `docs/memories/llms.txt`. This replaces ad-hoc memory mechanisms — `bd remember`, a stray notes file, an agent's own session memory — for anything that should outlive the session and the tool that recorded it.
 
-A project memory is not a changelog entry and not a TODO. It captures a durable fact or decision about the project — a convention, a gotcha, a "why we do it this way" — written so a future agent (or teammate) who has never seen this session can read it and act correctly.
+A memory holds a durable fact or decision: a convention, a gotcha, a reason something is the way it is. It is not a changelog entry and not a TODO. Write it so an agent or teammate who never saw the session can read it and act correctly.
 
-## Memory, ADR, or doc? Route before writing
+## Memory, ADR, or doc?
 
-A repo typically has three homes for durable knowledge, and a memory is the narrowest of them. Putting content in the wrong home is how docs rot and decisions get relitigated.
+Durable knowledge has three homes, and a memory is the narrowest of them. Put content in the wrong home and docs rot while decisions get relitigated.
 
-- **Standard docs** (`docs/ARCHITECTURE.md`, `docs/STYLE_GUIDE.md`, `docs/DEPLOYMENT_STEPS.md`) describe the system **as it is** — what it does and how to work on it, for a general reader. They are living documents: when reality changes, the text is rewritten and the old text has no value.
-- **ADRs** (`docs/adr/`) record a **choice among alternatives** with lasting consequences — "use async queue processing for distributed jobs", "use S3 for all objects" — with the context that forced the choice. They are point-in-time and immutable: superseded by a new ADR, never edited into a new position.
-- **A memory** is **intrinsic knowledge about how something was done or how it actually behaves**, usually learned the hard way, that neither of the above would ever carry: an incident-derived gotcha ("keep-both merge resolutions produce syntax damage invisible to diff review — run typecheck, not a marker grep"), the rationale for something that looks wrong but must stay ("this unused hook is deliberately dormant — do not remove"), a trap in the toolchain ("a red test in a package you didn't touch means rebuild, not bug"). A doc wouldn't think to say it; an ADR has no alternatives-weighing to record.
+- **Standard docs** (`docs/ARCHITECTURE.md`, `docs/STYLE_GUIDE.md`, `docs/DEPLOYMENT_STEPS.md`) describe the system **as it is** — what it does and how to work on it, for a general reader. They are living text: when reality changes you rewrite them, and the old version has no value.
+- **ADRs** (`docs/adr/`) record a **choice among alternatives** with lasting consequences — "use async queue processing for distributed jobs", "put all objects in S3" — along with the context that forced the choice. They are point-in-time and immutable: a new ADR supersedes an old one, and you never edit one into a new position.
+- **Memories** hold what was learned the hard way: how something actually behaves, or why something that looks wrong has to stay. "Keep-both merge resolutions produce syntax damage that diff review misses — run typecheck, not a marker grep." "This unused hook is deliberately dormant, don't remove it." "A red test in a package you didn't touch means rebuild, not bug." A doc would never think to say it, and an ADR has no alternatives to weigh.
 
-Routing test, in order:
+The test, in order:
 
-1. Does it describe how the system currently works, for anyone reading the code fresh? → **standard doc** (update the doc, don't write a memory).
-2. Does it record a choice among alternatives with architectural consequences? → **ADR** (offer to write one; a memory may still hold the decision *trail* — the incidents and arguments — while the ADR holds the decision).
-3. Is it a learned fact — a trap, a convention's rationale, an incident lesson — that a future agent needs in order to act correctly, and that would otherwise be lost? → **memory**.
+1. Does it describe how the system works today, for anyone reading the code fresh? → **doc**. Update the doc; skip the memory.
+2. Does it record a choice among alternatives with architectural consequences? → **ADR**. Offer to write one. A memory can still hold the decision *trail* — the incidents and the arguments — while the ADR holds the decision.
+3. Is it a learned fact a future agent needs in order to act correctly, and that would otherwise be lost? → **memory**.
 
-Memories also **graduate**. When a memory's content becomes normative — a rule everyone must follow, a section a real doc should own — move the normative statement into the doc or ADR, then retire the memory (or slim it to the decision trail) with a pointer to the new home. Never let a memory fork a normative document: one of them wins, and the memory must say which.
+Memories also graduate. Once a memory's content turns normative — a rule everyone must follow, a section a real doc should own — move the rule into that doc or ADR, then retire the memory (or slim it down to the decision trail) with a pointer to its new home. Never let a memory fork a normative document: one of them wins, and the memory has to say which.
 
-## The one rule that matters most
+## Classify before you write
 
-**Classify before you write.** If the repo is public, or might ever become public, a memory file must contain **no secrets, credentials, account identifiers, IP addresses, hostnames, internal URLs, or other private infrastructure detail.** These files are committed to git; anything written into one is as exposed as the rest of the repo.
+These files get committed, so anything in one is as exposed as the rest of the repo. If the repo is public, or might ever become public, a memory must contain **no secrets, credentials, account identifiers, IP addresses, hostnames, internal URLs, or other private infrastructure detail.**
 
 Before writing any memory:
-1. Ask: does this repo's visibility make this content safe to commit? If you don't know, ask the user rather than assume public or private.
-2. If the memory contains sensitive material, **do not half-scrub it.** Don't replace a credential with `<REDACTED>` and ship the rest — leave the whole memory out of the repo and tell the user it belongs in a private mechanism instead (local agent memory, `bd remember` kept private, a password manager, private notes).
-3. When a memory needs to reference sensitive knowledge to be useful, reference *where the value lives*, never the value itself — e.g. "the deploy key is in the `rocky-surf-deploy` entry in 1Password", not the key.
+
+1. Ask whether the repo's visibility makes this content safe to commit. If you don't know, ask the user — don't assume public or private.
+2. If the memory is sensitive, **don't half-scrub it.** Swapping a credential for `<REDACTED>` and shipping the rest is not good enough. Leave the memory out of the repo and tell the user it belongs somewhere private: local agent memory, `bd remember` kept private, a password manager, private notes.
+3. When a memory needs sensitive knowledge to be useful, point at *where the value lives* — "the deploy key is the `rocky-surf-deploy` entry in 1Password" — never the value itself.
 
 When in doubt, leave it out and say why. A missing memory is recoverable; a leaked credential in git history is not.
 
@@ -40,7 +41,7 @@ When in doubt, leave it out and say why. A missing memory is recoverable; a leak
 
 ### The index: `docs/memories/llms.txt`
 
-One [llms.txt](https://llmstxt.org/) file, grouped free-form or flat (grouping is optional — most projects are small enough for a flat list). One bullet per memory:
+One [llms.txt](https://llmstxt.org/) file, one bullet per memory. Group the bullets or keep them flat — most projects stay small enough for a flat list.
 
 ```text
 # Project Memories
@@ -57,7 +58,7 @@ Entry format: `- [key](filename.md): [status] one-line summary.`
 
 ### Per-memory file: `docs/memories/YYYY-MM-DD-<key>.md`
 
-`YYYY-MM-DD` is the date the memory was established (see "Look up today's date" below) and `<key>` is a short slug — lowercase, dash-separated, matching the `KEY` field.
+`YYYY-MM-DD` is the date the memory was established — look it up, don't assume it. `<key>` is a short slug, lowercase and dash-separated, matching the `KEY` field.
 
 ```markdown
 ---
@@ -78,76 +79,76 @@ never destructive without a forward-only remediation path.
 ```
 
 Frontmatter fields:
-- `KEY` — the slug, matches the index entry and filename
-- `DATE` — when the memory was first established (not when the file was written, if different — but usually the same)
+- `KEY` — the slug; matches the index entry and the filename
+- `DATE` — when the memory was first established, which is usually but not always the day the file was written
 - `UPDATED` — last revision date; equals `DATE` until the first update
 - `STATUS` — `active` or `retired`
 - `SOURCE` — where the memory came from, e.g. `"session decision"`, `"bd remember, migrated 2026-08-21"`, `"code review, PR #142"`
 
-Body: prose, not bullet fragments. State the memory plainly, then the reasoning behind it. Keep it to a paragraph or two — this is a record, not documentation.
+Body: prose, not bullet fragments. State the memory plainly, then the reasoning behind it. A paragraph or two — this is a record, not documentation.
 
 ## Operations
 
 ### Add a memory
 
-1. Look up today's date — do not assume it:
+1. Look up today's date:
    ```bash
    date +%Y-%m-%d
    ```
-2. Resolve the project root (never write into a skill/plugin directory):
+2. Resolve the project root, so you never write into a skill or plugin directory:
    ```bash
    git rev-parse --show-toplevel 2>/dev/null || pwd
    ```
-   If the resolved root looks like a skills/plugin checkout (contains `/.claude/skills/`, `/skills/`, or a `plugin.json` at the root), stop and ask the user which project the memory belongs to.
-3. Run the sensitivity classification above. If it fails, stop and tell the user why, and suggest where the memory should live instead.
-4. If `docs/memories/` doesn't exist, create it along with `llms.txt` (header only, no entries yet).
-5. Choose a short, descriptive `key`. Check `llms.txt` for a collision; if the key exists, this is an **update**, not a new memory (see below).
+   If the root looks like a skills or plugin checkout (it contains `/.claude/skills/` or `/skills/`, or has a `plugin.json` at the top), stop and ask the user which project the memory belongs to.
+3. Classify the content for sensitivity. If it fails, stop, say why, and suggest where the memory should live instead.
+4. Create `docs/memories/` and its `llms.txt` (header only, no entries) if they don't exist yet.
+5. Pick a short, descriptive key and check `llms.txt` for a collision. A key that already exists means this is an update, not a new memory.
 6. Write `docs/memories/YYYY-MM-DD-<key>.md` with the frontmatter and body above.
 7. Add one bullet to `llms.txt`.
-8. Report the file path and key back to the user. Don't dump the full file into chat.
+8. Report the file path and key. Don't dump the file into chat.
 
 ### Update a memory in place
 
-Use this when the underlying fact is still true but needs correction or more detail — not when it has changed and the old version is now historically interesting (that's a retire + new memory).
+Use this when the underlying fact is still true but needs correction or more detail. If it is no longer true and the old version is worth keeping, retire it and write a new memory instead.
 
 1. Edit the body of the existing file.
-2. Bump `UPDATED` to today's date. Leave `DATE` untouched — it marks when the memory was first established.
-3. Update the one-line summary in `llms.txt` if the substance changed enough to make the old summary misleading.
+2. Bump `UPDATED` to today. Leave `DATE` alone — it marks when the memory was first established.
+3. Revise the one-line summary in `llms.txt` if the substance moved enough to make the old summary misleading.
 
 ### Retire a memory
 
-Use this when a memory is no longer true or no longer relevant, but the history is worth keeping (e.g. "why we used to do X before switching to Y").
+Use this when a memory is no longer true or no longer relevant, but the history is worth keeping — "why we used to do X before switching to Y".
 
-1. Set `STATUS: retired` in the file's frontmatter and bump `UPDATED`.
-2. **Never delete the file.** The point of retiring instead of deleting is that future readers can still find out why something used to be true.
-3. Update the `llms.txt` entry to `[retired]` and, if useful, note what superseded it in the one-line summary.
-4. If a new, related memory replaces this one, mention the replacement in the retired file's body and cross-reference the new memory's key.
+1. Set `STATUS: retired` in the frontmatter and bump `UPDATED`.
+2. **Never delete the file.** Retiring instead of deleting is what lets a future reader find out why something used to be true.
+3. Change the `llms.txt` entry to `[retired]`, noting what superseded it if that helps.
+4. If a new memory replaces this one, say so in the retired file's body and cross-reference the new key.
 
 ### Read / consult memories
 
-Agents should read `docs/memories/llms.txt` first — never all of `docs/memories/` — and open only the files whose one-line summaries are relevant to the task at hand. This is the same discipline as an ADR index: scan, then fetch selectively.
+Read `docs/memories/llms.txt` first — never the whole directory — and open only the files whose one-line summaries bear on the task at hand. Same discipline as an ADR index: scan, then fetch selectively.
 
 ## Migrating from `bd remember`
 
-When a project has been using beads' memory feature and wants to move durable, shareable knowledge into files:
+When a project has been using beads' memory feature and wants its durable, shareable knowledge in files:
 
-1. List existing memories:
+1. List what's there:
    ```bash
    bd memories
    ```
-2. For each one worth keeping, read its full content:
+2. Read each one worth keeping:
    ```bash
    bd recall <key>
    ```
-3. **Classify each memory** per the sensitivity rule above:
-   - **Public-safe** (conventions, architectural decisions, gotchas with no infrastructure specifics) → write as a `docs/memories/` file. Set `SOURCE: bd remember, migrated YYYY-MM-DD`.
-   - **Sensitive** (credentials, account IDs, internal hosts, anything that would expose infrastructure) → leave it in `bd remember`, or move it to whatever private mechanism the project actually uses. Do not write a scrubbed version into the repo — either it's safe as-is or it doesn't go in.
-4. Do not delete anything from `bd remember` as part of migration unless the user asks — treat this as an additive copy until the user confirms the beads memories are no longer needed.
-5. Report a short table: memory key → migrated (file path) or kept-in-beads (why).
+3. Classify each one:
+   - **Safe to commit** — conventions, architectural decisions, gotchas with no infrastructure specifics → write it as a `docs/memories/` file with `SOURCE: bd remember, migrated YYYY-MM-DD`.
+   - **Sensitive** — credentials, account IDs, internal hosts, anything that exposes infrastructure → leave it in `bd remember`, or move it to whatever private mechanism the project actually uses. No scrubbed versions in the repo: either it's safe as-is or it doesn't go in.
+4. Don't delete anything from `bd remember` as part of the migration unless the user asks. Treat it as a copy until they confirm the beads memories are no longer needed.
+5. Report a short table: memory key → migrated (file path), or kept in beads (why).
 
 ## CLAUDE.md / AGENTS.md integration
 
-Suggest adding a short pointer so agents discover the index automatically, in whatever instructions file the project uses (`CLAUDE.md`, `AGENTS.md`):
+Offer to add a pointer so agents find the index on their own, in whatever instructions file the project uses (`CLAUDE.md`, `AGENTS.md`):
 
 ```markdown
 ## Project Memories
@@ -160,28 +161,27 @@ memory, use the project-memories skill.
 
 ## Quality checklist
 
-Before telling the user a memory is done, verify:
+Before telling the user a memory is done:
 
-- [ ] Routed correctly — this is learned, intrinsic knowledge, not something a standard doc or an ADR should own
-- [ ] Classified for sensitivity before writing — no secrets, credentials, account IDs, IPs, or private infra detail in the file
+- [ ] Routed correctly — learned, intrinsic knowledge, not something a doc or ADR should own
+- [ ] Classified for sensitivity before anything got written
 - [ ] Date looked up, not assumed
 - [ ] `KEY` matches the filename slug and the `llms.txt` entry
-- [ ] Body states the memory plainly, then the reasoning — not just a bare fact
+- [ ] Body states the memory plainly, then the reasoning — not a bare fact
 - [ ] `SOURCE` reflects where this actually came from
-- [ ] `llms.txt` updated (new entry, or summary/status revised)
-- [ ] Retired, never deleted, when a memory goes stale
+- [ ] `llms.txt` updated: new entry, or summary and status revised
 
 ## Do / Don't
 
 **Do**
-- Keep each memory file self-contained — a reader shouldn't need to open two files to understand one memory
+- Keep each memory self-contained — nobody should need two files to understand one memory
 - Reference where a sensitive value lives, never the value itself
-- Ask the user about repo visibility when you're not sure whether public-safe applies
-- Retire memories that go stale instead of deleting them
+- Ask about repo visibility when you're unsure whether public-safe applies
+- Retire stale memories instead of deleting them
 
 **Don't**
-- Write a memory when the content belongs in a standard doc (current behavior) or an ADR (a choice among alternatives) — route it there instead
-- Half-scrub a sensitive memory and commit it anyway — leave it out entirely
-- Write a memory into a skill/plugin directory instead of the user's project
-- Silently overwrite a memory's original `DATE` when updating it
-- Treat `docs/memories/` as a changelog — it's for durable facts, not a log of events
+- Write a memory when the content belongs in a doc or an ADR — route it there
+- Half-scrub a sensitive memory and commit it anyway
+- Write a memory into a skill or plugin directory instead of the user's project
+- Silently overwrite a memory's original `DATE` on update
+- Treat `docs/memories/` as a changelog
