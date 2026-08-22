@@ -9,6 +9,22 @@ Maintain durable project knowledge as files that live and travel with the repo: 
 
 A project memory is not a changelog entry and not a TODO. It captures a durable fact or decision about the project — a convention, a gotcha, a "why we do it this way" — written so a future agent (or teammate) who has never seen this session can read it and act correctly.
 
+## Memory, ADR, or doc? Route before writing
+
+A repo typically has three homes for durable knowledge, and a memory is the narrowest of them. Putting content in the wrong home is how docs rot and decisions get relitigated.
+
+- **Standard docs** (`docs/ARCHITECTURE.md`, `docs/STYLE_GUIDE.md`, `docs/DEPLOYMENT_STEPS.md`) describe the system **as it is** — what it does and how to work on it, for a general reader. They are living documents: when reality changes, the text is rewritten and the old text has no value.
+- **ADRs** (`docs/adr/`) record a **choice among alternatives** with lasting consequences — "use async queue processing for distributed jobs", "use S3 for all objects" — with the context that forced the choice. They are point-in-time and immutable: superseded by a new ADR, never edited into a new position.
+- **A memory** is **intrinsic knowledge about how something was done or how it actually behaves**, usually learned the hard way, that neither of the above would ever carry: an incident-derived gotcha ("keep-both merge resolutions produce syntax damage invisible to diff review — run typecheck, not a marker grep"), the rationale for something that looks wrong but must stay ("this unused hook is deliberately dormant — do not remove"), a trap in the toolchain ("a red test in a package you didn't touch means rebuild, not bug"). A doc wouldn't think to say it; an ADR has no alternatives-weighing to record.
+
+Routing test, in order:
+
+1. Does it describe how the system currently works, for anyone reading the code fresh? → **standard doc** (update the doc, don't write a memory).
+2. Does it record a choice among alternatives with architectural consequences? → **ADR** (offer to write one; a memory may still hold the decision *trail* — the incidents and arguments — while the ADR holds the decision).
+3. Is it a learned fact — a trap, a convention's rationale, an incident lesson — that a future agent needs in order to act correctly, and that would otherwise be lost? → **memory**.
+
+Memories also **graduate**. When a memory's content becomes normative — a rule everyone must follow, a section a real doc should own — move the normative statement into the doc or ADR, then retire the memory (or slim it to the decision trail) with a pointer to the new home. Never let a memory fork a normative document: one of them wins, and the memory must say which.
+
 ## The one rule that matters most
 
 **Classify before you write.** If the repo is public, or might ever become public, a memory file must contain **no secrets, credentials, account identifiers, IP addresses, hostnames, internal URLs, or other private infrastructure detail.** These files are committed to git; anything written into one is as exposed as the rest of the repo.
@@ -146,6 +162,7 @@ memory, use the project-memories skill.
 
 Before telling the user a memory is done, verify:
 
+- [ ] Routed correctly — this is learned, intrinsic knowledge, not something a standard doc or an ADR should own
 - [ ] Classified for sensitivity before writing — no secrets, credentials, account IDs, IPs, or private infra detail in the file
 - [ ] Date looked up, not assumed
 - [ ] `KEY` matches the filename slug and the `llms.txt` entry
@@ -163,6 +180,7 @@ Before telling the user a memory is done, verify:
 - Retire memories that go stale instead of deleting them
 
 **Don't**
+- Write a memory when the content belongs in a standard doc (current behavior) or an ADR (a choice among alternatives) — route it there instead
 - Half-scrub a sensitive memory and commit it anyway — leave it out entirely
 - Write a memory into a skill/plugin directory instead of the user's project
 - Silently overwrite a memory's original `DATE` when updating it
