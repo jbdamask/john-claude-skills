@@ -1,0 +1,4 @@
+{
+  "about": "The project's own generated files. Each row: files, a check command that exits 1 when they differ from a fresh build, and the build command. The team's own rows (agent definitions, the agent brief) are in hive/tools/generated.py.",
+  "rows": []
+}

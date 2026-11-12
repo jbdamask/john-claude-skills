@@ -1,0 +1,5 @@
+{"term": "Bead", "definition": "One task in the Beads tracker (bd), done by one one-shot agent and ending in at most one commit.", "source": "own term", "deprecated": ["ticket", "task card"]}
+{"term": "Spec", "definition": "The written description of one feature: a file under hive/specs/ for agents and a brief of at most 200 words in the GitHub issue for the owner.", "source": "own term", "deprecated": []}
+{"term": "Lead", "definition": "The one long-lived agent session that hands out beads, decides and talks to the owner.", "source": "own term", "deprecated": ["coordinator", "manager agent"]}
+{"term": "One-shot agent", "definition": "An agent spawned for one bead that writes its result on the bead, sends one final message and exits.", "source": "own term", "deprecated": ["teammate", "worker agent"]}
+{"term": "Product test", "definition": "The one test that says whether the product is worth using, kept in hive/strategy/PRODUCT-TEST.md.", "source": "own term", "deprecated": []}

@@ -1,0 +1,57 @@
+{
+  "SubagentStart": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "cd \"$CLAUDE_PROJECT_DIR\" && if jq -e '.agent_type == \"fresh-eyes-reader\"' >/dev/null 2>&1; then exit 0; fi; bd prime --no-memories | jq -Rs '{hookSpecificOutput:{hookEventName:\"SubagentStart\",additionalContext:.}}'",
+          "timeout": 30,
+          "statusMessage": "hive: agent brief"
+        }
+      ]
+    },
+    {
+      "hooks": [
+        {"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hive/tools/term.py --hook SubagentStart", "timeout": 10}
+      ]
+    }
+  ],
+  "SessionStart": [
+    {
+      "hooks": [
+        {"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hive/hooks/lead_context.py start", "timeout": 10},
+        {"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hive/tools/term.py --hook SessionStart", "timeout": 10}
+      ]
+    }
+  ],
+  "UserPromptSubmit": [
+    {
+      "hooks": [
+        {"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hive/hooks/lead_context.py checkin", "timeout": 10}
+      ]
+    }
+  ],
+  "PreToolUse": [
+    {
+      "matcher": "Bash",
+      "hooks": [
+        {"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hive/hooks/no_email.py"},
+        {"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hive/hooks/no_push_main.py"},
+        {"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hive/hooks/no_close_blocked.py", "timeout": 30},
+        {"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hive/hooks/worktree_write_guard.py"}
+      ]
+    },
+    {
+      "matcher": "Edit|Write",
+      "hooks": [
+        {"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hive/hooks/shared_tree_guard.py"}
+      ]
+    },
+    {
+      "matcher": "Agent|Task",
+      "hooks": [
+        {"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hive/hooks/spawn_gate.py", "timeout": 30}
+      ]
+    }
+  ]
+}

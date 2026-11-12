@@ -23,6 +23,7 @@ And plugins:
 ```shell
 /plugin install beads-planner@john-claude-skills
 /plugin install context-analyzer@john-claude-skills
+/plugin install hive@john-claude-skills   # requires Beads (bd); see plugins/hive/README.md
 ``
 
 ## Skills

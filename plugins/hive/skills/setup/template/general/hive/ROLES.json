@@ -1,0 +1,129 @@
+{
+  "about": "Every role an agent can take. `python3 hive/tools/roles.py build` writes one Claude Code agent definition per role into .claude/agents/, with the role's brief as its body, so the agent has its brief from its first turn. A bead for a role carries the label role:<name>; the spawn gate (hive/hooks/spawn_gate.py) refuses a spawn whose agent type and bead label disagree. Edit a role's source file or this file, then run the build.",
+  "who_decides": "Nobody chooses a role task by task. Each role is tied to a step of the process (`when`). When the work reaches that step, whoever files the bead (`filed_by`) adds the label role:<name> and the lead spawns it with that agent type. Every other bead is done by a plain one-shot agent. Adding, removing or moving a role is {{owner}}'s decision.",
+  "lanes": "Each role answers one question (`lane`), and no two roles answer the same one. A job that is no role's question goes to a plain one-shot agent.",
+  "roles": [
+    {
+      "name": "strategist",
+      "does": "Owns the product test, says whether the work in flight moves it and what should stop, and writes the week's candidate features from three scouts' reports.",
+      "identity": "You are the strategist of the {{name}} team.",
+      "sources": [{"file": "hive/STRATEGIST.md"}],
+      "needs_bead": true,
+      "agent_brief": true,
+      "every_days": 7,
+      "writes": "hive/strategy/{date}.md",
+      "must_contain": "## Report to {{owner}}",
+      "looks_like": "^Strategist \\d{4}",
+      "when": "Weekly (hive/CRONS.md), and the day the product changes direction.",
+      "filed_by": "the lead, from the cron row",
+      "lane": "Are we building the right thing?"
+    },
+    {
+      "name": "gardener",
+      "does": "Weekly. Reports what the team's rules and documents cost and whether agents use them, and proposes cuts.",
+      "identity": "You are the gardener of the {{name}} team.",
+      "sources": [{"file": "hive/GARDENER.md"}],
+      "needs_bead": true,
+      "agent_brief": true,
+      "every_days": 7,
+      "writes": "hive/gardener/{date}.md",
+      "must_contain": "## Report to {{owner}}",
+      "looks_like": "^Gardener \\d{4}",
+      "when": "Weekly (hive/CRONS.md).",
+      "filed_by": "the lead, from the cron row",
+      "lane": "Is the way we work small and used?"
+    },
+    {
+      "name": "spec-writer",
+      "does": "Turns a feature the owner states into a written spec on its GitHub issue.",
+      "identity": "You write the spec for one feature {{owner}} has stated. You change no code and add no label to the issue.",
+      "sources": [{"file": "hive/BUILD.md", "section": "The flow"},
+                  {"file": "hive/PROJECT.md", "section": "Checks every feature passes"}],
+      "needs_bead": true,
+      "agent_brief": true,
+      "looks_like": "^Write the spec for issue",
+      "when": "Each time a new request is labelled drafting (hive/BUILD.md step 2).",
+      "filed_by": "the lead",
+      "lane": "What exactly will be built, and how will anyone check it?"
+    },
+    {
+      "name": "experience-designer",
+      "does": "Works out the fewest steps a user needs for a feature, by screen and by AI assistant, and writes them into the spec.",
+      "identity": "You are the experience designer of the {{name}} team.",
+      "sources": [{"file": "hive/EXPERIENCE.md"}],
+      "needs_bead": true,
+      "agent_brief": true,
+      "looks_like": "^Design what the user does",
+      "when": "On every spec that changes what a user does, after the spec writer and before the red team (hive/BUILD.md step 2).",
+      "filed_by": "the lead",
+      "lane": "How little does the user have to do?"
+    },
+    {
+      "name": "red-team",
+      "does": "Tries to show a spec, a feature's evidence or a proposed feature is wrong before anyone relies on it. Did none of the work.",
+      "identity": "You are the red team of the {{name}} team.",
+      "sources": [{"file": "hive/RED-TEAM.md"},
+                  {"file": "hive/PROJECT.md", "section": "Checks every feature passes"}],
+      "needs_bead": true,
+      "agent_brief": true,
+      "looks_like": "^Red team",
+      "when": "On every spec before the owner is asked to approve it, on a feature's evidence before the owner is shown it (hive/BUILD.md steps 2 and 6), and on the strategist's candidates (hive/STRATEGIST.md).",
+      "filed_by": "the lead",
+      "lane": "Is this plan or this evidence wrong?"
+    },
+    {
+      "name": "blind-checker",
+      "does": "Compares old and new output without knowing which is which. Did none of the work it checks.",
+      "identity": "You are a blind checker. You did none of the work you are checking and you change none of it.",
+      "sources": [{"file": "hive/FIXES.md", "section": "The blind check"}],
+      "needs_bead": true,
+      "agent_brief": true,
+      "looks_like": "^Blind check",
+      "when": "On every bug fix (hive/FIXES.md) and every feature part that makes a judgment.",
+      "filed_by": "the agent whose work is checked files the bead; the lead spawns it",
+      "lane": "Is the new output worse than the old?"
+    },
+    {
+      "name": "product-reviewer",
+      "does": "Uses the product the way its user would, on something it was not built on, and files what is wrong.",
+      "identity": "You are the product reviewer of the {{name}} team.",
+      "sources": [{"file": "hive/PRODUCT-REVIEW.md"},
+                  {"file": "hive/REVIEW-CHECKLIST.md"}],
+      "needs_bead": true,
+      "agent_brief": true,
+      "looks_like": "^Product review",
+      "when": "After a feature that changes what the user sees reaches the running product, and weekly while features are being built.",
+      "filed_by": "the lead",
+      "lane": "Is what the user sees right?"
+    },
+    {
+      "name": "fresh-eyes-reader",
+      "does": "Reads something about to go to the owner or the public, knowing only the vision.",
+      "identity": "You are a fresh-eyes reader. You know nothing about this project except the vision below and the work the prompt gives you. Open no other project file.",
+      "sources": [{"file": "hive/FRESH-EYES.md", "section": "Prompt"},
+                  {"file": "hive/VISION.md"}],
+      "needs_bead": false,
+      "agent_brief": false,
+      "omit_claude_md": true,
+      "when": "Before anything is published to the owner or the public (hive/FRESH-EYES.md).",
+      "filed_by": "no bead; the lead spawns it directly",
+      "lane": "Would an outsider understand this?"
+    }
+  ],
+  "not_generated": [
+    {
+      "name": "worker",
+      "does": "The plain one-shot agent: does one bead and exits.",
+      "lives": "hive/BRIEF.md, added at start as .beads/PRIME.md",
+      "how": "Spawned with no subagent_type; the SubagentStart hook adds the agent brief.",
+      "lane": "Do the task."
+    },
+    {
+      "name": "lead",
+      "does": "Hands out tasks, decides, talks to the owner.",
+      "lives": "hive/LEAD.md",
+      "how": "Started as HIVE_ROLE=lead claude; hive/hooks/lead_context.py adds the runbook.",
+      "lane": "Who does what, in what order?"
+    }
+  ]
+}
