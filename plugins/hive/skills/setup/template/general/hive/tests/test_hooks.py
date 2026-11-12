@@ -86,6 +86,11 @@ class Sizes(unittest.TestCase):
         if "shared_tree_guard.py" in cmd:
             return context(hook("shared_tree_guard.py", {"tool_name": "Write", "agent_id": "a",
                                                          "tool_input": {"file_path": str(ROOT / "src" / "x.py")}}))
+        if "protected_guard.py" in cmd:
+            import protected_guard
+            return max(protected_guard.READ_REASON.format(folder="~/" + "x" * 200, label="x" * 60, lead=", or the lead"),
+                       protected_guard.UNKNOWN_REASON.format(folder="~/" + "x" * 200, why="x" * 120),
+                       protected_guard.LABEL_REASON.format(label="x" * 60), key=len)
         if "spawn_gate.py" in cmd:
             import contextlib
             import io

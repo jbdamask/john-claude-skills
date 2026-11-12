@@ -37,6 +37,7 @@ Need the lead or {{owner}} (spend over a cap, a refusal that names a risk, an ac
 - No `bd edit`, `bd init` or `bd delete`; never close a bead past an open blocker (hook).
 - Stop only processes you started, by their recorded pid; never pkill or kill by pattern.
 - Never type an email address in a command (hook).
+- Never read or list a protected folder (`protected_folders` in hive/project.json) unless your bead carries its label (hook).
 
 ## If your bead does X, read Y
 | Your bead | Read |

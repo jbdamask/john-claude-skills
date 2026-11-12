@@ -37,6 +37,7 @@ Check from the top; the first match decides. If {{owner}} asked for this exact t
 - One bead is one one-shot task with one writer: a title, a description with the goal and a `Read:` list of the only files needed, and `--acceptance` that anyone can check and the agent can meet alone.
 - A bead for a role carries the label `role:<name>` (hive/ROLES.json); every other bead is done by a plain agent.
 - A start gate is a dependency (`bd dep add <blocked> <blocker>`), never text.
+- A protected folder (`protected_folders` in hive/project.json: items that must stay unseen) is read only by the agent of an in-progress bead carrying its label, which only the lead adds, to the one bead that needs it; a hook refuses everyone else, the lead too unless the entry sets `lead_may_read`.
 - A note that changes the work also goes into the bead's title, description or acceptance (`bd update`), then a `SPEC-OK: <what changed>` note; the spawn gate refuses a bead whose notes overrule its text until then.
 - To reopen another agent's bead: `bd reopen <id>`, `bd update <id> --assignee ""`, then a note saying exactly what to fix.
 - The agent brief stays under the hook limit (hive/tests): a line added to it replaces one.

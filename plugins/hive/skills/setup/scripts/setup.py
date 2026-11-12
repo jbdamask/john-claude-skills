@@ -33,7 +33,7 @@ HERE = Path(__file__).resolve().parents[1]
 GENERAL = HERE / "template" / "general"
 PROJECT = HERE / "template" / "project"
 HOOKS = HERE / "template" / "settings-hooks.json"
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 MANIFEST = "hive/general-files.json"
 RENDERED = {".md", ".json"}
 SLOT = re.compile(r"\{\{(\w+)\}\}")
@@ -144,6 +144,7 @@ def answers(root: Path, a) -> tuple[dict, bool]:
         "remote": "origin",
         "flow_since": dt.date.today().isoformat(),
         "shared_tree_may_edit": ["hive/", "docs/", ".beads/", "*.md"],
+        "protected_folders": [],
         "labels": bool(given.get("labels", True)) and not a.no_github,
     }
     return cfg, False

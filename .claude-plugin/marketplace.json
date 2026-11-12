@@ -34,7 +34,7 @@
       "description": "Sets up an agent team in any repo with /hive:setup: one lead, one-shot agents that each do one bead, eight role agents, the build flow from GitHub issue to finished feature, guard hooks, a landing tool and their tests. Requires Beads (bd), gh and beads-planner 0.2.0 or later.",
       "source": "./plugins/hive",
       "strict": false,
-      "version": "0.1.0"
+      "version": "0.2.0"
     }
   ]
 }

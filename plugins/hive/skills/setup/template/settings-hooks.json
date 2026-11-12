@@ -42,6 +42,12 @@
       ]
     },
     {
+      "matcher": "Bash|Read|Grep|Glob",
+      "hooks": [
+        {"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hive/hooks/protected_guard.py", "timeout": 30}
+      ]
+    },
+    {
       "matcher": "Edit|Write",
       "hooks": [
         {"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/hive/hooks/shared_tree_guard.py"}
