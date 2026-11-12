@@ -1,373 +1,101 @@
 ---
 name: issue-to-beads
-description: Decomposes GitHub issues into structured Beads epics, tasks, and sub-tasks with objectively verifiable acceptance criteria. Use this skill whenever the user mentions converting GitHub issues to Beads, planning work from a GitHub issue, decomposing issues into tasks, breaking down a GitHub issue, or wants to take an issue and turn it into actionable Beads work items. Also trigger when the user says things like "plan this issue", "break down issue X", "convert this to beads", or references a GitHub issue URL and wants it turned into trackable work. Requires that the user's project uses Beads (bd) for issue tracking.
+description: Turns a GitHub issue, and its spec file when the project has one, into a Beads epic with one bead per agent-sized task, created in a single `bd create --graph` call after a mechanical check and one cold read. Runs without asking questions. Use when the user says "break down issue 42", "plan this issue into beads", "convert this issue to beads", or passes an issue number or URL to /beads-planner. Needs a project that uses Beads (bd 1.3 or later) and an authenticated gh CLI.
 context: fork
 ---
 
-# Issue-to-Beads
+# Issue to beads
 
-Converts a GitHub issue into a structured Beads work breakdown with epics, tasks, and sub-tasks - each with 3-5 objectively verifiable acceptance criteria. All beads must have relationships and dependencies mapped out.
+## Goal
+Turn one GitHub issue into beads that one-shot agents can pick up from `bd ready` and finish without asking anyone anything. You run in the background and cannot ask the user questions: decide, and list every decision in the report.
 
-## Prerequisites
+## Inputs
+- An issue: `42`, `#42`, `owner/repo#42` or its URL. Fetch it with `gh issue view <n> --json number,title,body,labels,comments,url` (add `--repo owner/repo` when given).
+- A spec file, when the project has one: given as a second argument, or found where the conventions say specs live. With a spec, the spec is the requirement and the issue is context; skip any planning phase and go straight to the plan file.
+- The project's conventions: `.beads/PLANNING.md` (below). Read it first. Also read whatever it, the spec or the issue points to that you need to name files correctly.
+- Run `bd prime` once if the project's hooks have not already shown it to you; it is the project's Beads brief.
 
-- The user's project must have Beads initialized (`bd init` already run)
-- The `bd` CLI must be available on PATH
-- The `gh` CLI must be authenticated for the target GitHub repo
-- The user should be in (or specify) the project directory containing `.beads/`
-- The project should have an `AGENTS.md` file — read it first, as its acceptance criteria conventions and landing-the-plane workflow take precedence over this skill's defaults
+If there is no spec and the issue is too vague to say what done looks like for each piece, stop: create nothing, and report exactly which questions must be answered first. Do not interview.
 
-## Workflow Overview
+## Project conventions: .beads/PLANNING.md
+A short file the project owns. Follow it over any default here. It may say:
+- **Spec files**: where they live and how they are named.
+- **Description lines**: lines every bead description must carry (for example `Read:` files, a pin or lock line, which tree or worktree to work in).
+- **Standard acceptance lines**: lines added to every bead, or to beads of a kind (code, UI, docs).
+- **Labels**: labels every bead or certain beads carry. Graph-created children do not inherit the epic's labels, so put each label on each node.
+- **Epic**: how the epic is titled and what its acceptance is (often the spec's own acceptance, word for word).
+- **Links**: `external_ref` and `spec_id` format.
+- **Where the plan file goes**.
+- **Git**: branch and worktree per issue or trunk; whether beads are exported (`bd export -o <path>`) and committed, and by whom; whether to run the `git-push-and-tag` skill and with which label.
+- **Report**: what the final report to the caller must contain beyond the defaults.
 
-```
-GitHub Issue → Fetch → Branch & Worktree → Plan-Only → Work Breakdown → File Beads → Review & Refine (up to 5x) → Handoff
-```
+With no such file, use these defaults and say so in the report: the epic is titled `<issue title> (#<n>)`; every node gets `external_ref: gh-<n>` and, with a spec, `spec_id: <spec path>`; no standard acceptance lines; no labels; plan file at `.beads/plans/<n>.json`; no branch, no worktree, no export, no commit, no push, no issue label.
 
-The skill operates in seven phases:
+## What one bead is
+One bead is one agent's worth of work: it fits in one agent's context, ends in one commit, can be checked on its own, and does not share a file with a bead that can run beside it. Smaller steps go as bullets inside a bead. If two beads must touch the same file, either add a `blocks` edge so they run one after the other, or merge them. A spike (a question to answer before building) is a bead whose acceptance is a file with the answer.
 
-1. **Fetch** — Pull the GitHub issue content and present a summary
-2. **Branch** — Create a git branch and check out a worktree for the issue
-3. **Plan** — Load the plan-only skill to explore the codebase and develop an approved plan
-4. **Breakdown** — Collaborate with the user to agree on the Beads work breakdown
-5. **File** — Create detailed Beads epics, tasks, sub-tasks, verifiable criteria, and beads relationships and dependencies
-6. **Refine** — Review, proofread, polish, and iterate (up to 5 rounds)
-7. **Handoff** — Show the tree, ready queue, and sync to git
+Each description gives the agent what it needs to start cold: what to build and why, the files and functions involved, decisions already made, and the convention lines. Do not paste the whole spec; point to its sections.
 
-## Phase 1: Fetch the GitHub Issue
+## Acceptance
+Put acceptance in the node's `acceptance_criteria` field, never in the description. One line per criterion. Every bead needs at least one line a command or a direct observation settles. Add only the standard lines the conventions name; with none, add none.
 
-Accept any of these input formats:
-- Issue number: `#42` or `42`
-- Full URL: `https://github.com/owner/repo/issues/42`
-- Owner/repo + number: `myorg/myrepo#42`
+Good:
+- `` `pytest tests/test_auth.py` exits 0 ``
+- `` `GET /api/users` returns 200 with a JSON array ``
+- `` `src/auth/jwt.ts` exports `verifyToken` ``
+- `` The filter menu lists All, Active, Completed ``
 
-Fetch the issue using `gh`:
+Bad: "Works correctly", "Handles edge cases", "Good UX". Turn a judgment into something measurable ("axe reports 0 WCAG AA violations on /dashboard").
 
-```bash
-gh issue view <number> --json title,body,labels,assignees,milestone,comments --repo <owner/repo>
-```
+## The plan file
+One JSON file in the format `bd create --graph` reads (full schema: `bd help create --all`). It is the record of the breakdown; keep it where the conventions say. Shape:
 
-If `--repo` is not specified, `gh` will use the current directory's git remote. If the fetch fails, ask the user for the correct repo.
-
-Also fetch any linked issues or referenced PRs mentioned in the body to build context.
-
-After fetching, present a brief summary to the user covering: the issue's goal, key requirements, constraints, and any open questions or ambiguities you noticed. This sets the stage for planning.
-
-## Phase 2: Branch & Worktree
-
-After fetching the issue, create a dedicated branch and worktree so all Beads work happens in isolation from the main branch.
-
-### Branch Naming
-
-Derive the branch name from the issue number and title:
-
-```
-<issue-number>-<slugified-title>
-```
-
-For example, issue #42 titled "Add user authentication" becomes `42-add-user-authentication`. Keep the slug short — truncate to ~50 characters if needed.
-
-### Create Branch and Worktree
-
-```bash
-# Create the branch from the current HEAD
-git branch <branch-name>
-
-# Check out a worktree for the branch
-git worktree add ../<branch-name> <branch-name>
+```json
+{
+  "commit_message": "beads for #42",
+  "nodes": [
+    {"key": "epic", "type": "epic", "title": "Add login (#42)", "priority": 1,
+     "description": "...", "acceptance_criteria": "...",
+     "external_ref": "gh-42", "spec_id": "docs/specs/42-login.md", "labels": []},
+    {"key": "api", "parent_key": "epic", "type": "task", "title": "...", "priority": 1,
+     "description": "...", "acceptance_criteria": "- `pytest tests/test_login.py` exits 0",
+     "external_ref": "gh-42", "spec_id": "docs/specs/42-login.md",
+     "metadata": {"files": ["src/auth/login.py", "tests/test_login.py"], "new_files": ["tests/test_login.py"]}}
+  ],
+  "edges": [{"from_key": "ui", "to_key": "api", "type": "blocks"}]
+}
 ```
 
-The worktree is created as a sibling directory to the current repo. After creating it, **all subsequent work (planning, filing beads, syncing) must happen inside the worktree directory**.
-
-If a branch or worktree with that name already exists, ask the user whether to reuse it or pick a different name.
-
-## Phase 3: Plan (via plan-only skill)
-
-**IMPORTANT: Do NOT use `EnterPlanMode` or built-in plan mode.** Built-in plan mode auto-executes after approval, which is not what we want here.
-
-Load the `plan-only` skill using the `Skill` tool:
-
-```
-Skill: beads-planner:plan-only
-```
-
-The plan-only skill will:
-1. Explore the codebase using Explore/Plan agents
-2. Develop an implementation plan
-3. Write it to `.claude/plans/<slug>.md`
-4. Present it to the user for approval
-5. **Stop** — no auto-execution
-
-Once the plan-only skill completes and the user has approved the plan, copy the plan file into the project's `.plan` directory so it persists as a project artifact:
-
-```bash
-mkdir -p .plan
-# Find the plan file that plan-only just wrote (most recent file in .claude/plans/)
-ls -t .claude/plans/*.md | head -1
-# Copy it with the issue-derived name
-cp <plan-file> .plan/<issue-number>-<slug>.md
-```
-
-Use the issue number and slug from Phase 2 for the destination filename (e.g., `.plan/42-add-user-authentication.md`). The source file is whatever plan-only actually wrote — do not assume its slug matches the branch slug. Find the most recently created `.md` file in `.claude/plans/` and use that.
-
-Then proceed to Phase 4. The plan file serves as a reference for the work breakdown — it is not a trigger for implementation.
-
-If the user rejects the plan, stop the entire workflow.
-
-## Phase 4: Work Breakdown
-
-Using the approved plan as a foundation, propose the Beads work breakdown. This is where the plan gets translated into concrete, trackable work items.
-
-### Step 4a: Propose the Work Breakdown
-
-Present a draft work breakdown structured as:
-
-```
-Epic: [Title derived from issue]
-  ├── Task 1: [Title]
-  │   ├── Acceptance Criteria: [verifiable criteria]
-  │   └── Blocked by: —
-  ├── Task 2: [Title]
-  │   ├── Acceptance Criteria: [verifiable criteria]
-  │   └── Blocked by: Task 1
-  └── Task 3: [Title]
-      ├── Acceptance Criteria: [verifiable criteria]
-      └── Blocked by: —  (can parallelize with Task 1)
-```
-
-Pay careful attention to:
-- **Organization**: All tasks must belong to an Epic, which is effectively the top-level container for the GitHub issue.
-- **Dependencies**: Which tasks block which? Get this right — it determines what shows up in `bd ready`.
-- **Parallelization**: Tasks that are independent of each other should have no blocking dependency between them, so multiple workers can pick them up simultaneously.
-- **Granularity**: File a bead for any work that would take longer than about 2 minutes to finish. If something is trivially quick, it can be a bullet point inside a parent task's description rather than its own bead.
-- **Detailed designs**: Each task description should give the implementing agent enough context to start working without needing to re-read the entire GitHub issue.
-
-Solicit feedback on the breakdown:
-- Are these the right tasks?
-- Is the dependency ordering correct?
-- Are any tasks missing?
-- Should any tasks be split or merged?
-
-### Step 4b: Refine Acceptance Criteria
-
-Every task must have **acceptance criteria that are objectively verifiable** — meaning a different person (or an AI agent) could determine pass/fail without subjective judgment.
-
-Follow the conventions from the project's `AGENTS.md`:
-
-**Always include as the final criterion:**
-- "Typecheck passes"
-
-**For tasks with testable logic, also include:**
-- "Tests pass"
-
-**For tasks that change UI, also include:**
-- "Verify in browser"
-
-Good acceptance criteria examples:
-- "Status column added to tasks table with default 'pending'"
-- "Filter dropdown has options: All, Active, Completed"
-- "Clicking delete shows confirmation dialog"
-- "Running `npm test` produces 0 failures"
-- "The endpoint `GET /api/users` returns HTTP 200 with a JSON array"
-- "The file `src/auth/jwt.ts` exists and exports a `verifyToken` function"
-
-Bad acceptance criteria (too vague — never use these):
-- "Works correctly"
-- "User can do X easily"
-- "Good UX"
-- "Handles edge cases"
-
-If something is inherently subjective (like design quality), decompose it into measurable proxies:
-- "The component renders without console errors"
-- "Lighthouse accessibility score ≥ 90"
-- "All text meets WCAG AA contrast ratio (4.5:1)"
-
-Present the acceptance criteria to the user for approval.
-
-### Step 4c: Final Confirmation
-
-Show the complete plan one more time with all tasks, dependencies, priorities, and acceptance criteria. Ask the user to confirm before proceeding to filing.
-
-## Phase 5: File Beads
-
-Now grind through creating every issue in Beads. This is the execution-heavy phase — be thorough and methodical.
-
-### Beads Hierarchy
-
-Beads uses hierarchical IDs rooted on an epic:
-
-```
-bd-a3f8        Epic
-bd-a3f8.1      Task (child of epic)
-bd-a3f8.2      Task (child of epic)
-bd-a3f8.2.1    Sub-task (child of task)
-```
-
-Use `--parent <id>` when creating to place items in the hierarchy. Beads auto-assigns the dotted ID.
-
-| Plan Element | Beads Type | bd Flag |
-|---|---|---|
-| Top-level work item | `epic` | `-t epic` |
-| Individual work unit (>2 min) | `task` | `-t task --parent <epic-id>` |
-| Smaller piece within a task | `task` (sub-task) | `-t task --parent <task-id>` |
-| Bug found during analysis | `bug` | `-t bug` |
-
-### Priority Mapping
-
-The following table is provided for completeness, only. All tasks created for GitHub issues are considered essential and, therefore, should be one of P0, P1, P2, P3. Do not use P4 as that priority level suggests the task is unnecessary.
-
-| Priority | When to use |
-|---|---|
-| P0 | Blocking other teams or production |
-| P1 | Core path — must be done for the issue to be considered complete |
-| P2 | Important but not on the critical path |
-| P3 | Nice-to-have, polish, optimization |
-| P4 | Backlog / future consideration |
-
-### Creation Order
-
-1. Create the top-level epic first
-2. Create tasks as children of the epic
-3. Create sub-tasks as children of their respective tasks (if needed)
-4. Add `blocks` dependencies between tasks
-5. Add any `related` or `discovered-from` links
-
-### Command Pattern
-
-```bash
-# 1. Create epic (returns an ID like bd-a3f8)
-bd create "Epic Title" -t epic -p 1 \
-  -d "Description including GitHub issue reference.
-
-Acceptance Criteria:
-- [Objective criterion 1]
-- [Objective criterion 2]
-- Typecheck passes" \
-  --json
-
-# 2. Create tasks under epic (auto-assigns bd-a3f8.1, bd-a3f8.2, etc.)
-bd create "Task Title" -t task -p 1 \
-  --parent <epic-id> \
-  -d "Detailed description of what to implement and how.
-
-Acceptance Criteria:
-- [Objective criterion 1]
-- [Objective criterion 2]
-- Typecheck passes" \
-  --json
-
-# 3. Create sub-tasks under a task if needed (auto-assigns bd-a3f8.1.1, etc.)
-bd create "Sub-task Title" -t task -p 1 \
-  --parent <task-id> \
-  -d "Focused piece of work within the parent task.
-
-Acceptance Criteria:
-- [Objective criterion 1]
-- Typecheck passes" \
-  --json
-
-# 4. Add blocking dependencies
-bd dep add <blocked-task-id> <blocker-task-id> --type blocks
-
-# 5. Add discovered-from links (if applicable)
-bd dep add <new-issue-id> <source-issue-id> --type discovered-from
-```
-
-### Description Format
-
-Every Beads issue description must follow this structure:
-
-```
-[Detailed functional description of what needs to be done.
-Include enough context that a worker agent can start implementing
-without re-reading the full GitHub issue. Mention specific files,
-functions, APIs, or patterns to use where relevant.]
-
-Source: GitHub Issue <owner>/<repo>#<number>
-
-Acceptance Criteria:
-- [Objective criterion 1]
-- [Objective criterion 2]
-- Typecheck passes
-```
-
-### Dependency Best Practices
-
-- Tasks that produce artifacts consumed by later tasks get `blocks` dependencies
-- Tasks within the same phase that are independent get **no dependency** — this enables parallelization
-- All child tasks get `parent-child` links to their epic automatically via `--parent`
-- Use `discovered-from` for bugs or follow-up work found during analysis
-
-## Phase 6: Review & Refine
-
-This phase is critical for quality. After filing all the beads, step back and do a thorough review. The goal is to ensure that worker agents will have as smooth a time as possible when they pick up these tasks.
-
-### Review Checklist
-
-For each bead, check:
-- **Clarity**: Could a worker agent understand what to do without asking questions?
-- **Acceptance criteria**: Are they truly objectively verifiable? No vague language?
-- **Standard criteria included**: Does every task end with "Typecheck passes"? Do testable tasks include "Tests pass"? Do UI tasks include "Verify in browser"?
-- **Dependencies**: Are all blocking relationships correct? Are parallelizable tasks actually unblocked from each other?
-- **Descriptions**: Do they include enough detail about files, functions, and approach?
-- **Granularity**: Is every bead scoped to more than ~2 minutes of work? Are any too large and should be split?
-- **Titles**: Are they clear and specific enough to understand at a glance in `bd ready` output?
-- **Priorities**: Do they accurately reflect importance and critical path?
-
-### Iteration Loop
-
-After each review pass, make updates using `bd update`:
-
-```bash
-# Fix a description or acceptance criteria
-bd update <id> -d "Improved description..." --json
-
-# Fix priority
-bd update <id> -p <new-priority> --json
-
-# Add a missing dependency
-bd dep add <blocked-id> <blocker-id> --type blocks
-
-# Add a missing task discovered during review
-bd create "Newly discovered task" -t task --parent <epic-id> -p 2 \
-  -d "Description...
-
-Acceptance Criteria:
-- [criteria]
-- Typecheck passes" --json
-```
-
-**Repeat this review-and-refine cycle up to 5 times.** Each pass should focus on progressively finer details:
-
-1. **Pass 1**: Structural correctness — are the right tasks present with correct dependencies?
-2. **Pass 2**: Description quality — are descriptions detailed enough for a cold-start worker?
-3. **Pass 3**: Acceptance criteria rigor — are all criteria truly objective and verifiable?
-4. **Pass 4**: Parallelization opportunities — can any blocking deps be removed to enable more concurrent work?
-5. **Pass 5**: Final polish — titles, priorities, consistency, anything remaining
-
-After each pass, briefly note what was changed. Stop early if a pass produces no meaningful improvements — say "I don't think we can do much better than this" and move on to handoff.
-
-## Phase 7: Handoff
-
-Once refinement is complete:
-
-1. Run `bd sync` to ensure the JSONL index reflects all Phase 6 changes
-2. Run `bd dep tree <epic-id>` to show the user the full hierarchy
-3. Run `bd ready --json` to show what's immediately actionable
-4. Summarize what was created: epic count, task count, dependency count, how many tasks are parallelizable
-5. Invoke the git-push-and-tag skill to stage, commit, push, and label the issue:
-
-```
-Skill: beads-planner:git-push-and-tag
-```
-
-Work is NOT complete until the skill finishes successfully. Never stop before pushing — that leaves work stranded locally.
-
-## Edge Cases
-
-- **Tiny issues** (single task, no decomposition needed): One epic, one task. Still include acceptance criteria with "Typecheck passes" as the final criterion.
-- **Enormous issues** (20+ tasks): Suggest breaking the GitHub issue into multiple Beads epics, each with its own task hierarchy. Ask the user how they'd like to group them.
-- **Vague issues** (missing requirements): Use Phase 4 aggressively to fill gaps. Create "Research" or "Spike" tasks for unknowns with acceptance criteria like "A decision document exists at `docs/decisions/001-auth-approach.md` with Status, Context, Decision, and Consequences sections."
-- **Issues with existing Beads work**: Run `bd list --json` to check for duplicates before creating. Alert the user if overlap is found.
+- An edge `{"from_key": A, "to_key": B, "type": "blocks"}` means A waits for B. `parent_key` already makes the parent-child link; do not repeat it in `edges`.
+- `metadata.files` lists every file the bead edits or creates; `metadata.new_files` the ones that do not exist yet. The check uses both.
+- Priorities 0 to 3. Use `type` `task` unless the work is a `bug`, `spike`, `chore` or `feature`.
+- Graph children get flat ids (`proj-x7k2`), not dotted ones; `bd ready --parent <epic>` and `bd show <epic> --children` still group them.
+
+## Steps
+1. Read the conventions, the issue, the spec and the files they name. Run `bd list --all --external-ref gh-<n> --json` to catch beads already filed for it; if some exist, add only what is missing and say so.
+2. Write the plan file.
+3. Check it: `python3 <this skill's directory>/scripts/check_plan.py <plan> --root <repo root> --issue <n>`. It fails loudly on: a bead with no acceptance line a command or an observation can settle, a vague acceptance line, a dependency cycle, a named file path that does not exist and is not in `new_files`, two beads that can run at the same time owning the same file, a missing parent or external_ref. Fix and rerun until it prints `OK`. Then `bd create --graph <plan> --dry-run`, which checks the graph against bd itself.
+4. Cold read, once. Start a fresh subagent and give it only the plan file path, the spec path (or the issue URL) and the repo root; it may open the files the beads name, as the working agent would. Ask: "For each bead, could you start it without asking anything? List what you would have to ask, by bead key. Do not suggest new scope. Change no files." Fix what it finds in the plan file once, rerun step 3, and do not ask again. If you cannot start a subagent, skip this and say so in the report.
+5. Create: `bd create --graph <plan> --json`. It is atomic: either every bead and edge exists or none does. Keep the returned key-to-id map.
+6. Verify: `bd lint <epic id> <child ids...>` (acceptance present), `bd dep cycles`, `bd ready --parent <epic id>`.
+7. Do what the conventions say about git, export and the issue label (the `git-push-and-tag` skill, if they name it). With no conventions, do none of it.
+
+If `bd create --graph` fails, nothing was created: fix the plan and run it again. Never fall back to one `bd create` per bead.
+
+## Report
+Your last message, to the caller:
+- The epic id and the plan file path.
+- How many beads and how many dependencies were created.
+- What is ready now (`bd ready --parent <epic>`), by id and title.
+- Every judgment call: splits and merges, ordering you chose, anything in the spec or issue you could not turn into a checkable bead, and what the cold read changed.
+- What you did not do: no commit, no export, no push, no label, no cold read, whichever apply; and whether `.beads/PLANNING.md` was found.
+- Anything the conventions add.
+
+## Edge cases
+- **One-task issue**: still an epic with one child, so the issue has one place in `bd ready --parent`.
+- **Very large issue** (more than about 25 beads): split into several epics under the issue, each with its own plan file, and say so in the report.
+- **Unknowns**: a spike bead whose acceptance names the answer file and the question it answers; beads that depend on the answer wait on it with a `blocks` edge.
+- **Issue already broken down**: add only the missing beads, with `parent_id` set to the existing epic.
 
 ## Reference
-
-For detailed Beads CLI syntax and advanced patterns, read `references/beads-cli-reference.md`.
+`references/beads-cli-reference.md` has the bd 1.3.1 commands this skill and the agents who work the beads use.

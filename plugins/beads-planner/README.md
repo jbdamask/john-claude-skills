@@ -1,78 +1,65 @@
 # beads-planner
 
-A Claude Code plugin that converts GitHub issues into structured [Beads](https://github.com/beads-project/beads) work breakdowns — epics, tasks, and sub-tasks with objectively verifiable acceptance criteria.
+A Claude Code plugin that turns a GitHub issue, and its spec when the project has one, into a [Beads](https://github.com/steveyegge/beads) epic with one bead per agent-sized task. Built for bd 1.3.1.
 
-## Quick Start
+## Quick start
 
 ```
-/beads-planner #42
-/beads-planner https://github.com/owner/repo/issues/42
+/beads-planner 42
+/beads-planner https://github.com/owner/repo/issues/42 docs/specs/42-login.md
 ```
 
 ## Prerequisites
 
-- **Beads** initialized in your project (`bd init`)
-- **GitHub CLI** (`gh`) authenticated for the target repo
-- **Beads CLI** (`bd`) on your PATH
+- Beads initialized in the project (`bd init`), bd 1.3 or later on PATH
+- GitHub CLI (`gh`) authenticated for the repo
+- `python3` (the plan check uses the standard library only)
 
-## What It Does
+## What it does
 
-Given a GitHub issue, the plugin:
+issue-to-beads runs in the background and asks no questions:
 
-1. **Fetches** the issue content and linked references
-2. **Creates a branch and worktree** for isolated work (`42-add-user-auth`)
-3. **Plans** the implementation (codebase exploration, no auto-execution)
-4. **Breaks down** the work into epics/tasks/sub-tasks with the user
-5. **Files beads** with descriptions, priorities, dependencies, and acceptance criteria
-6. **Reviews and refines** the breakdown (up to 5 passes)
-7. **Pushes** the branch and labels the GitHub issue as "Ready"
+1. Reads the project's `.beads/PLANNING.md` (if any), the issue and the spec.
+2. Writes one plan file in the format `bd create --graph` reads: an epic, one bead per agent-sized task, acceptance in the acceptance field, `external_ref` gh-&lt;n&gt; and `spec_id` on each bead, and the files each bead owns.
+3. Checks it mechanically (`scripts/check_plan.py`): checkable acceptance, no cycles, named files exist, no two beads that can run together own the same file. Then `bd create --graph --dry-run`.
+4. Has a fresh subagent cold-read the plan once and fixes what it finds.
+5. Creates every bead and dependency in one atomic `bd create --graph` call.
+6. Reports the epic id, counts, what is ready now, every judgment call, and what it did not do.
 
-## Plugin Structure
+If there is no spec and the issue is too vague to break down, it creates nothing and says what is missing.
 
-```
-beads-planner/
-├── commands/
-│   └── beads-planner.md       # /beads-planner slash command
-├── skills/
-│   ├── issue-to-beads/        # Core workflow (7 phases)
-│   │   ├── SKILL.md
-│   │   └── references/
-│   │       └── beads-cli-reference.md
-│   ├── plan-only/             # Codebase planning without auto-execution
-│   │   └── SKILL.md
-│   └── git-push-and-tag/      # Commit, push, and label the issue
-│       └── SKILL.md
-└── .claude-plugin/
-    └── plugin.json
-```
+By default it does not branch, export, commit, push or label anything. A project turns those on in `.beads/PLANNING.md`.
+
+## Project conventions: .beads/PLANNING.md
+
+A short file the project owns. It can set: where specs live, lines every bead description carries, standard acceptance lines, labels, the epic's title and acceptance, the plan file's location, branch or trunk, export and commit (and who does it), whether to run git-push-and-tag and with which label, and what the report must contain. See the skill for details.
 
 ## Skills
 
-### issue-to-beads
+- **issue-to-beads**: the breakdown above. Invoked by `/beads-planner`.
+- **git-push-and-tag**: commits the plan file and the JSONL export (when the project keeps one), pushes, and adds the label the conventions name. Runs only when the conventions or the user ask.
+- **plan-only**: a separate, interactive planning mode that writes a plan and stops after the user approves it. issue-to-beads no longer uses it.
 
-The main workflow. Fetches a GitHub issue, creates a branch, plans the implementation, collaborates with the user on a work breakdown, files everything as beads, then pushes. Invoked by the `/beads-planner` command.
+## Changes in 0.2.0
 
-### plan-only
+- One `bd create --graph` call replaces a `bd create` and a `bd dep add` per bead.
+- No user-approval stops; no five review rounds. A mechanical check and one cold read instead.
+- No `bd sync` (in bd 1.3 it syncs the Dolt remote; it does not write the JSONL file).
+- Acceptance goes in `--acceptance`; links in `--external-ref` and `--spec-id`.
+- No hard-coded acceptance lines, no mandatory branch and worktree, no default commit or "Ready" label: all come from the project's conventions.
+- CLI reference rewritten from bd 1.3.1's own help.
 
-Read-only planning mode. Explores the codebase, writes a plan to `.claude/plans/<slug>.md`, presents it for approval, then stops. No code is executed. Used internally by issue-to-beads (Phase 3) but can also be triggered directly when another skill needs a plan.
+## Structure
 
-### git-push-and-tag
-
-Final-phase skill that syncs beads, commits, pushes the branch, and adds a "Ready" label to the GitHub issue. Used internally by issue-to-beads (Phase 7) but works standalone on any issue branch with synced beads.
-
-## Acceptance Criteria Conventions
-
-Every task gets 3-5 objectively verifiable criteria. Standard criteria always included:
-
-- **"Typecheck passes"** — on every task
-- **"Tests pass"** — on tasks with testable logic
-- **"Verify in browser"** — on tasks that change UI
-
-## Priority Levels
-
-| Level | Meaning |
-|-------|---------|
-| P0 | Critical — blocking production or other teams |
-| P1 | Core path — must complete for the issue to close |
-| P2 | Important but not on the critical path |
-| P3 | Nice-to-have, polish, optimization |
+```
+beads-planner/
+├── commands/beads-planner.md
+├── skills/
+│   ├── issue-to-beads/
+│   │   ├── SKILL.md
+│   │   ├── scripts/check_plan.py
+│   │   └── references/beads-cli-reference.md
+│   ├── git-push-and-tag/SKILL.md
+│   └── plan-only/SKILL.md
+└── .claude-plugin/plugin.json
+```

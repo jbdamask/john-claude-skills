@@ -1,102 +1,25 @@
 ---
 name: git-push-and-tag
-description: Final-phase skill that stages beads, commits, pushes to the remote branch, and labels the GitHub issue as "Ready". Invoked by issue-to-beads as the last step after all beads have been filed, reviewed, and synced. Can also be used standalone when you have synced beads on an issue branch that need to be committed and pushed.
+description: Commits and pushes the record of a beads breakdown (the plan file and, when the project keeps one, its JSONL export) and optionally labels the GitHub issue. Runs only when a project's .beads/PLANNING.md asks for it or the user invokes it; issue-to-beads does not call it otherwise. Use when the user says "commit and push the beads for issue 42" or "push the plan and label the issue".
 context: fork
 ---
 
-# Git Push and Tag
+# Git push and tag
 
-Stages the `.beads/` directory, commits, pushes the branch, and labels the corresponding GitHub issue as "Ready". This is the final step in the issue-to-beads workflow.
+## Goal
+Put the breakdown for one issue into git and, if asked, mark the issue. Nothing else.
 
-## Prerequisites
+## Inputs
+- The issue number (given; never inferred from a branch name).
+- The project's `.beads/PLANNING.md`: whether to export, the export path, the plan file path, the branch, the label. With no such file and no instruction from the caller, stop and say so; there is no default commit.
 
-- Must be on an issue branch (pattern: `<issue-number>-<slug>`)
-- Beads must already be synced (`bd sync` has been run or will be run here)
-- The `gh` CLI must be authenticated for the target GitHub repo
-- The `bd` CLI must be available on PATH
-- The `.beads/` directory must exist with filed beads
+## Steps
+1. If the conventions keep a JSONL export in git, write it: `bd export -o <path>` (usually `.beads/issues.jsonl`). Do not run `bd sync` for this: it syncs the Dolt remote and writes no file.
+2. Stage only named files: the plan file and the export path. Never `git add .beads/` or `git add -A`; `.beads/` holds the database, locks and backups.
+3. Commit with a plain message: `beads for #<n>: <issue title>`.
+4. Push the current branch: `git push` (or `git push -u origin <branch>` for a new branch). If it is rejected, pull with the project's merge style (the conventions say rebase or merge), resolve only conflicts in the files you staged, and push once more. If it fails again, stop and report.
+5. If the conventions name a label, `gh issue edit <n> --add-label <label>`. If the label does not exist, report it; do not create it.
+6. `git status -sb | head -1` must show the branch even with its remote.
 
-## Workflow
-
-### Step 1: Pull latest changes
-
-```bash
-git pull --rebase
-```
-
-If this fails due to conflicts, stop and ask the user how to resolve them.
-
-### Step 2: Sync beads
-
-```bash
-bd sync
-```
-
-This ensures the JSONL index is up to date with the beads on disk.
-
-### Step 3: Stage the beads directory
-
-```bash
-git add .beads/
-git add .plan/
-```
-
-Stage `.beads/` (the filed beads) and `.plan/` (the approved plan artifact). Do not stage unrelated changes. If there are other files that should be committed, ask the user before staging them.
-
-### Step 4: Commit
-
-Infer the issue number and title from the current branch name. The branch follows the pattern `<issue-number>-<slug>` (e.g., `42-add-user-authentication`).
-
-```bash
-# Get branch name
-git rev-parse --abbrev-ref HEAD
-
-# Commit with descriptive message
-git commit -m "Add beads for issue #<number>: <title-from-slug>"
-```
-
-Replace `<number>` with the issue number extracted from the branch name, and `<title-from-slug>` with the slug portion converted back to readable text (hyphens to spaces).
-
-### Step 5: Push
-
-```bash
-git push -u origin <branch-name>
-```
-
-If the push fails (e.g., due to remote changes), try:
-
-```bash
-git pull --rebase
-git push -u origin <branch-name>
-```
-
-If it still fails, stop and ask the user for help.
-
-### Step 6: Label the GitHub issue
-
-Confirm the issue number with the user before labeling:
-
-> I inferred issue **#\<number\>** from branch `<branch-name>`. Should I add the "Ready" label to this issue?
-
-After confirmation:
-
-```bash
-gh issue edit <number> --add-label "Ready"
-```
-
-If the label doesn't exist on the repo, show the error and suggest the user create it manually or pick a different label.
-
-### Step 7: Verify
-
-```bash
-git status
-```
-
-This must show the branch is up to date with the remote. If it doesn't, diagnose and fix before declaring success.
-
-## Error Handling
-
-- **Push fails**: Suggest `git pull --rebase` and retry once. If still failing, ask the user.
-- **Label fails**: Show the error message. Common causes: label doesn't exist, insufficient permissions, wrong issue number. Suggest manual labeling as a fallback.
-- **Commit fails (nothing to commit)**: Run `git status` to diagnose. The beads may already be committed, or `bd sync` may not have produced changes. Ask the user how to proceed.
-- **Branch name doesn't match pattern**: Ask the user to provide the issue number manually.
+## Report
+The commit sha, the branch, the files committed, the label added (or why not).

@@ -1,7 +1,7 @@
 {
   "name": "beads-planner",
-  "version": "0.1.0",
-  "description": "Plan-only mode and GitHub-issue-to-Beads workflow. Provides planning without auto-execution and structured work decomposition into Beads epics, tasks, and sub-tasks.",
+  "version": "0.2.0",
+  "description": "Turns a GitHub issue and its spec into a Beads epic with one bead per agent-sized task, checked mechanically and created in one bd create --graph call (bd 1.3.1). Also plan-only mode.",
   "author": {
     "name": "John Damask"
   },

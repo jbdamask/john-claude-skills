@@ -1,199 +1,81 @@
-# Beads CLI Reference
+# Beads CLI reference (bd 1.3.1)
 
-Quick reference for `bd` commands used by the issue-to-beads skill.
-For foundational information about Beads, see the AGENTS.md file in the project's root directory.
+Checked against `bd --help` and `bd <command> --help` on bd 1.3.1. When in doubt, run the help; it is the source, not this file. `bd prime` prints the project's own brief for agents.
 
-## Table of Contents
-1. [Issue Creation](#issue-creation)
-2. [Dependencies](#dependencies)
-3. [Querying](#querying)
-4. [Status Management](#status-management)
-5. [Verification Criteria Patterns](#verification-criteria-patterns)
-
----
-
-## Issue Creation
-
+## Creating a breakdown in one step
 ```bash
-# Create an epic
-bd create "Title" -t epic -p <0-4> -d "Description" --json
-
-# Create a task under an epic
-bd create "Title" -t task -p <0-4> --parent <epic-id> -d "Description" --json
-
-# Create with blocking dependency in one command
-bd create "Title" -t task -p <0-4> --deps "blocks:<blocker-id>" --json
-
-# Create with discovered-from provenance
-bd create "Title" -t bug -p <0-4> --deps "discovered-from:<source-id>" --json
-
-# Quick create (less output)
-bd create "Title" -q --json
+bd help create --all              # full --graph plan schema
+bd create --graph plan.json --dry-run     # validate structure and cycles, create nothing
+bd create --graph plan.json --json        # create every node and edge atomically; prints {"ids": {key: id}}
 ```
+Plan file: `{"commit_message": "...", "nodes": [...], "edges": [...]}`.
+- Node fields use the names `bd show --json` emits: `key` (plan-local, required), `title`, `type`, `priority` (0-4), `description`, `design`, `acceptance_criteria`, `notes`, `labels`, `assignee`, `estimated_minutes`, `external_ref`, `spec_id`, `metadata` (any JSON), `status`, `defer_until`/`due_at` (RFC3339), `id` (pin an explicit id).
+- `parent_key` (a plan key) or `parent_id` (an existing issue) makes the parent-child link. Children created this way get flat ids and do not inherit the parent's labels.
+- Edge: `{"from_key": "a", "to_key": "b", "type": "blocks"}` means a waits for b (b must close before a is ready). `from_id`/`to_id` point at existing issues. `type` defaults to `blocks`; do not repeat parent links as edges.
+- Unknown fields are dropped with a warning, so read the dry-run output.
+- The dry run does not check paths that run through dependencies already stored; the live create can still refuse. A refused create creates nothing.
 
-### Issue Types
-| Type | Flag | When to Use |
-|------|------|-------------|
-| `epic` | `-t epic` | Large multi-task work items; the root of a hierarchy |
-| `task` | `-t task` | Individual actionable work units (children of epics or other tasks) |
-| `feature` | `-t feature` | New functionality (alternative to task) |
-| `bug` | `-t bug` | Defects discovered during analysis |
-| `chore` | `-t chore` | Maintenance, cleanup, infrastructure |
-
-### Hierarchical IDs
-
-Beads auto-assigns dotted IDs based on parent-child relationships:
-
-```
-bd-a3f8        Epic
-bd-a3f8.1      Task (child of epic)
-bd-a3f8.2      Task (child of epic)
-bd-a3f8.2.1    Sub-task (child of bd-a3f8.2)
-bd-a3f8.2.2    Sub-task (child of bd-a3f8.2)
-```
-
-Create children using `--parent`:
+## One issue at a time
 ```bash
-bd create "Design login UI" -t task --parent bd-a3f8 --json   # → bd-a3f8.1
-bd create "Backend validation" -t task --parent bd-a3f8 --json # → bd-a3f8.2
-bd create "Validate email format" -t task --parent bd-a3f8.2 --json # → bd-a3f8.2.1
+bd create "Title" -t task -p 1 --parent <epic> -d "What and why" \
+  --acceptance "- \`pytest -q\` exits 0" --external-ref gh-42 --spec-id docs/specs/42.md \
+  --deps discovered-from:<id> -l label1,label2 --json
+bd create "Title" --body-file desc.md --acceptance "..."   # long description from a file
 ```
+`--parent` gives a dotted child id (`proj-a3f8.1`) and copies the parent's labels (`--no-inherit-labels` to stop it). `--deps` takes `type:id`; bare `id`, `blocked-by:id` and `depends-on:id` all make the new issue wait on `id`; `blocks:id` reverses it. Types: task, bug, feature, epic, chore, decision, spike, story, milestone.
 
-### Priority Levels
-| Level | Flag | Meaning |
-|-------|------|---------|
-| P0 | `-p 0` | Critical — blocking production or other teams |
-| P1 | `-p 1` | High — core path, must complete |
-| P2 | `-p 2` | Normal — important but not blocking |
-| P3 | `-p 3` | Low — polish, optimization |
-| P4 | `-p 4` | Backlog — future consideration |
+## Fields after creation
+```bash
+bd update <id> --acceptance "..." --external-ref gh-42 --spec-id <path> -d "..." -p 1
+bd update <id> --add-label x --remove-label y
+bd note <id> "one line"               # append to notes (same as --append-notes)
+bd note <id> --file note.txt          # longer note from a file
+bd lint [ids...]                      # missing sections: tasks need acceptance (field counts), epics need acceptance or success criteria
+```
+`--notes` replaces all notes; use `bd note` to append.
 
 ## Dependencies
-
 ```bash
-# Add a blocks dependency (task-A is blocked BY task-B)
-bd dep add <blocked-id> <blocker-id> --type blocks
-
-# Parent-child relationship (child OF parent)
-bd dep add <child-id> <parent-id> --type parent-child
-
-# Related (soft connection, no blocking)
-bd dep add <issue-a> <issue-b> --type related
-
-# Discovered-from (provenance tracking)
-bd dep add <discovered-id> <source-id> --type discovered-from
-
-# View dependency tree
-bd dep tree <issue-id>
+bd dep add <waiting-id> <blocker-id>            # waiting-id depends on blocker-id (type blocks)
+bd dep add <a> --blocked-by <b>                 # same
+bd dep add <a> <b> -t discovered-from           # types: blocks, tracks, related, parent-child, discovered-from, until, caused-by, validates, relates-to, supersedes
+bd dep add --file deps.jsonl                    # bulk: {"from":"a","to":"b"} per line
+bd dep remove <a> <b>
+bd dep tree <id>
+bd dep cycles
 ```
+Only blocking types (blocks, waits-for, parent-child) affect `bd ready`. A blocked parent blocks its children.
 
-### Dependency Types
-| Type | Effect on `bd ready` | When to Use |
-|------|---------------------|-------------|
-| `blocks` | Blocked task hidden from ready queue | Task B cannot start until Task A completes |
-| `parent-child` | Child inherits parent's blocked status | Organizing tasks under epics |
-| `related` | No effect on ready queue | Soft connections for context |
-| `discovered-from` | No effect on ready queue | Tracking where work was discovered |
-
-**Important:** Blocking propagates through parent-child hierarchies. When a parent epic is blocked, ALL children are automatically blocked.
-
-## Querying
-
+## Finding work
 ```bash
-# Find ready work (unblocked tasks)
-bd ready --json
-
-# List all issues
-bd list --json
-
-# Show details of a specific issue
-bd show <issue-id> --json
-
-# Show epic status with children
-bd epic status <epic-id>
-
-# View dependency tree
-bd dep tree <issue-id>
-
-# Check for duplicates before creating
-bd duplicates --dry-run
-
-# Project statistics
-bd stats
+bd ready [--parent <epic>] [--label x] [--json] [-n 0]   # unblocked open work
+bd ready --explain                                       # why each issue is or is not ready
+bd list --all --external-ref gh-42 --json                # everything linked to issue 42
+bd list --spec docs/specs/42                             # by spec_id prefix
+bd list --parent <epic>
+bd show <id> [--children] [--json]
+bd search "text"
 ```
 
-## Status Management
-
+## Claiming and leases
 ```bash
-# Start working on a task
-bd update <issue-id> -s in_progress --json
+bd update <id> --claim          # atomic: assignee = you (BEADS_ACTOR), status in_progress, takes a lease
+bd ready --claim [--label x]    # claim the first ready issue matching the filters
+bd heartbeat <id>               # extend your lease while you work
+bd unclaim <id>                 # give it back: assignee cleared, status open
+bd reclaim [--older-than 10m]   # supervisor: return issues whose lease expired back to open
+bd close <id> --reason "..."    # done
+```
+A claim fails if someone else holds a live lease. `--actor` or `BEADS_ACTOR` sets who you are.
 
-# Add progress notes
-bd update <issue-id> --notes "Progress update" --json
+## Sync and export
+`bd sync` is one pull / conflict-check / push cycle against the project's Dolt remote. It does not write a JSONL file. `bd export -o .beads/issues.jsonl` writes the JSONL export when a project keeps one in git; `export.auto: true` in `.beads/config.yaml` writes it after each write command. Whether to export or commit is the project's choice (its `.beads/PLANNING.md`).
 
-# Close a completed task
-bd close <issue-id> -r "Completed: [brief reason]" --json
-
-# Add labels
-bd update <issue-id> --add-label "github-issue-42" --json
-```
-
-## Verification Criteria Patterns
-
-These patterns help write objectively verifiable acceptance criteria.
-
-### Code Existence
-```
-- File `src/auth/middleware.ts` exists and exports `authenticateRequest`
-- Module `@app/utils/validator` is importable without errors
-```
-
-### Test Results
-```
-- `npm test -- --grep "auth"` exits with code 0
-- `pytest tests/test_auth.py` reports 0 failures
-- Test coverage for `src/auth/` is ≥ 80% (via `npm run coverage`)
-```
-
-### API Behavior
-```
-- `curl -s localhost:3000/api/health` returns HTTP 200 with `{"status":"ok"}`
-- `curl -X POST localhost:3000/api/login -d '{"user":"test","pass":"test"}' returns HTTP 200 with a JSON body containing `token` field
-- `curl -s -o /dev/null -w "%{http_code}" localhost:3000/api/admin` returns 401 without auth header
-```
-
-### Build / CI
-```
-- `npm run build` exits with code 0 and produces `dist/` directory
-- `docker build -t app .` completes without errors
-- GitHub Actions CI workflow passes on the PR branch
-```
-
-### Database / Migration
-```
-- Migration `004_add_users_index.sql` exists in `migrations/`
-- Running `psql -c "\d users"` shows an index on the `email` column
-- `bd show <id>` confirms status=closed
-```
-
-### Documentation
-```
-- `docs/api/authentication.md` exists and contains sections: Overview, Endpoints, Examples
-- `README.md` contains a "Getting Started" section with install instructions
-- Decision record `docs/decisions/001-auth-approach.md` exists with Status, Context, Decision, Consequences sections
-```
-
-### Performance / Quality
-```
-- Lighthouse performance score ≥ 85 for `/dashboard` route
-- `npx eslint src/ --max-warnings 0` exits with code 0
-- Response time for `GET /api/users` is < 200ms with 1000 seeded records (measured via `time curl`)
-```
-
-### UI / Accessibility
-```
-- Component renders without React console errors in development mode
-- All interactive elements are reachable via Tab key navigation
-- `npx axe-core /dashboard` reports 0 violations at WCAG AA level
-- Screenshot comparison: `npx playwright test --update-snapshots` produces no diff
-```
+## Acceptance lines that settle themselves
+- Code: `` `src/auth/jwt.ts` exports `verifyToken` ``
+- Tests: `` `pytest tests/test_auth.py` exits 0 ``
+- API: `` `curl -s -o /dev/null -w '%{http_code}' localhost:3000/api/admin` prints 401 without a token ``
+- Build: `` `npm run build` exits 0 and writes `dist/` ``
+- Data: `` `psql -c '\d users'` shows an index on `email` ``
+- Docs: `` `docs/api/auth.md` has sections Overview, Endpoints, Examples ``
+- UI: `` `npx playwright test login.spec.ts` exits 0 ``; `` axe reports 0 WCAG AA violations on /dashboard ``
