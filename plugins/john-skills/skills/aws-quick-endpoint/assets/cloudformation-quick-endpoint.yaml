@@ -34,7 +34,28 @@ Parameters:
     MinValue: 3
     MaxValue: 300
 
+  LogRetentionDays:
+    Type: Number
+    Default: 30
+    Description: Days to keep Lambda logs in CloudWatch
+    AllowedValues: [1, 3, 5, 7, 14, 30, 60, 90, 180, 365]
+
 Resources:
+  # ---- Lambda Log Group ----
+  # Owned by the stack so deleting the stack deletes the logs. Without this,
+  # Lambda auto-creates the group on first invoke, it never expires, and it
+  # survives stack deletion as an orphan.
+  LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-handler'
+      RetentionInDays: !Ref LogRetentionDays
+      Tags:
+        - Key: ManagedBy
+          Value: aws-quick-endpoint
+
   # ---- DynamoDB Table ----
   DynamoDBTable:
     Type: AWS::DynamoDB::Table
@@ -94,6 +115,8 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Timeout: !Ref LambdaTimeout
       MemorySize: !Ref LambdaMemorySize
+      LoggingConfig:
+        LogGroup: !Ref LambdaLogGroup
       Environment:
         Variables:
           TABLE_NAME: !Ref DynamoDBTable

@@ -193,5 +193,6 @@ Creates:
 - **DynamoDB Table** — On-demand billing (pay-per-request), point-in-time recovery enabled, configurable partition key
 - **Lambda Function** — Python 3.14, inline CRUD handler with token auth, auto-timestamps, Decimal/float handling, paginated scan, input validation (10KB body limit, max depth 5, max 50 attrs per level), HMAC-signed pagination tokens
 - **IAM Role** — Least-privilege: only DynamoDB CRUD actions scoped to the single table, plus CloudWatch Logs
+- **CloudWatch Log Group** — Owned by the stack with 30-day retention (`LogRetentionDays` parameter), so deleting the stack deletes the logs instead of orphaning them
 - **API Gateway HTTP API** — Routes for GET (list), GET/{id}, POST, PUT/{id}, DELETE/{id} with CORS enabled
 - **Auto-deploy stage** — Changes deploy immediately, no manual stage management
