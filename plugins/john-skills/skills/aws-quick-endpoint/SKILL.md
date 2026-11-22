@@ -7,9 +7,18 @@ description: Create a token-secured REST API endpoint backed by AWS Lambda and D
 
 Deploy a token-secured REST API (API Gateway HTTP API + Lambda + DynamoDB) with full CRUD and paginated list operations via CloudFormation. Everything is IaC.
 
+## Token handling rule
+
+The auth token lives only in AWS Secrets Manager. The stack generates it, so it never passes through a template parameter or a file.
+
+- **Never write the token value to any file**, including `USAGE.md`. Files reference the secret ARN and fetch the token at run time.
+- **Never show the token value in chat.** Keep it in a shell variable for the smoke test and say where to fetch it.
+
+This way the skill's output is safe to commit no matter which directory or repo it runs in.
+
 ## Prerequisites
 
-- AWS CLI configured with a profile that has permissions for CloudFormation, Lambda, API Gateway, DynamoDB, and IAM
+- AWS CLI configured with a profile that has permissions for CloudFormation, Lambda, API Gateway, DynamoDB, IAM, Secrets Manager, and CloudWatch Logs
 - The profile must be able to create IAM roles
 
 ## Workflow
@@ -29,7 +38,6 @@ Generate unique names using profile and timestamp:
 ```bash
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 STACK_NAME="quick-ep-${RESOURCE_NAME}-${AWS_PROFILE}-${TIMESTAMP}"
-AUTH_TOKEN=$(python3 -c "import uuid; print(uuid.uuid4())")
 ```
 
 ### 3. Deploy CloudFormation
@@ -46,7 +54,6 @@ aws cloudformation create-stack \
   --capabilities CAPABILITY_NAMED_IAM \
   --parameters \
     ParameterKey=ResourceName,ParameterValue=$RESOURCE_NAME \
-    ParameterKey=AuthToken,ParameterValue=$AUTH_TOKEN \
     ParameterKey=PartitionKey,ParameterValue=${PARTITION_KEY:-id}
 ```
 
@@ -66,14 +73,19 @@ aws cloudformation describe-stacks \
   --output table
 ```
 
-Extract the API URL from outputs for the test step. The auth token is NOT in the outputs (NoEcho parameter) — use the `$AUTH_TOKEN` variable from step 2.
+Extract `ResourceEndpoint` and `AuthTokenSecretArn` from the outputs. The token itself is not an output.
 
 ### 5. Test the Endpoint
 
-Run a quick smoke test to confirm everything works. Use the resource name and partition key from step 1:
+Fetch the token into a shell variable (do not echo it), then run a quick smoke test. Use the resource name and partition key from step 1:
 
 ```bash
 API_URL="<ResourceEndpoint output value>"
+SECRET_ARN="<AuthTokenSecretArn output value>"
+AUTH_TOKEN=$(aws secretsmanager get-secret-value \
+  --profile $AWS_PROFILE \
+  --secret-id "$SECRET_ARN" \
+  --query SecretString --output text)
 
 # Create a record
 curl -s -X POST "$API_URL" \
@@ -88,7 +100,7 @@ Verify both return 200/201 with valid JSON. If the create returns a record with 
 
 ### 6. Provide Usage Info
 
-**IMPORTANT:** Always write a markdown file called `USAGE.md` in the working directory with ready-to-copy curl examples using the actual URL, token, profile, and stack name from this deployment. The user should be able to paste commands directly into their terminal without editing.
+**IMPORTANT:** Always write a markdown file called `USAGE.md` in the working directory with ready-to-copy curl examples using the actual URL, secret ARN, profile, and stack name from this deployment. The user should be able to paste commands directly into their terminal without editing. **Never put the token value in this file** — the Setup block fetches it from Secrets Manager.
 
 Use this template, substituting all `<placeholders>` with real values from the deployment:
 
@@ -96,13 +108,14 @@ Use this template, substituting all `<placeholders>` with real values from the d
 # <Resource Name> API
 
 **Endpoint:** `<ResourceEndpoint URL>`
-**Auth token:** `<actual auth token>`
+**Auth token:** stored in Secrets Manager at `<AuthTokenSecretArn>`
 
 ## Setup
 
 ```bash
-TOKEN="<actual auth token>"
 URL="<actual ResourceEndpoint URL>"
+TOKEN=$(aws secretsmanager get-secret-value --profile <profile> \
+  --secret-id "<AuthTokenSecretArn>" --query SecretString --output text)
 ```
 
 ## Create a record
@@ -123,7 +136,8 @@ curl -s "$URL?limit=25" -H "x-api-token: $TOKEN"```
 If `next_token` appears in the response, pass it to get the next page:
 
 ```bash
-curl -s "$URL?limit=25&next_token=<TOKEN_FROM_RESPONSE>" \
+curl -s -G "$URL" --data-urlencode "limit=25" \
+  --data-urlencode "next_token=<TOKEN_FROM_RESPONSE>" \
   -H "x-api-token: $TOKEN"```
 
 ## Get one
@@ -151,10 +165,17 @@ curl -s -X DELETE "$URL/<id>" -H "x-api-token: $TOKEN"```
 - **CORS:** Enabled for all origins — safe to call from browser JavaScript
 - **Limits:** Max body 10KB, max nesting depth 5, max 50 attributes per level
 - **Pagination tokens** are HMAC-signed and tamper-proof
+- **Rotating the auth token:** run the command below. The API accepts the new token within 5 minutes, and existing pagination tokens stop working.
+
+```bash
+aws secretsmanager put-secret-value --profile <profile> --secret-id "<AuthTokenSecretArn>" \
+  --secret-string "$(aws secretsmanager get-random-password --profile <profile> \
+    --password-length 40 --exclude-punctuation --query RandomPassword --output text)"
+```
 
 ## Cleanup
 
-**Warning:** This permanently deletes the DynamoDB table and all data.
+**Warning:** This permanently deletes the DynamoDB table and all data, the auth token secret, and the logs.
 
 ```bash
 aws cloudformation delete-stack --profile <profile> --stack-name <stack-name>
@@ -165,7 +186,7 @@ After writing the file, tell the user: `Usage examples saved to USAGE.md`
 
 ### 7. Done
 
-The `USAGE.md` from step 6 contains everything the user needs: URL, token, curl examples, and cleanup command. No separate info file is needed.
+The `USAGE.md` from step 6 contains everything the user needs: URL, how to fetch the token, curl examples, and cleanup command. No separate info file is needed. Before finishing, confirm the token value appears in no file you wrote.
 
 ## Cleanup
 
@@ -181,9 +202,9 @@ aws cloudformation wait stack-delete-complete \
   --stack-name $STACK_NAME
 ```
 
-**Warning:** This permanently deletes the DynamoDB table and all its data.
+**Warning:** This permanently deletes the DynamoDB table and all its data, the auth token secret, and the Lambda log group. All three are owned by the stack, so nothing is left behind.
 
-**Stack update gotcha:** The AuthToken parameter uses `NoEcho`, so if you update the stack, you must re-provide the exact same token value. CloudFormation cannot recover NoEcho parameter values from previous deployments. Always save the token locally (step 7).
+Stack updates don't change the token. It lives in Secrets Manager, not in a template parameter, so there's nothing to re-supply.
 
 ## CloudFormation Template
 
@@ -191,8 +212,9 @@ Located at: `assets/cloudformation-quick-endpoint.yaml`
 
 Creates:
 - **DynamoDB Table** — On-demand billing (pay-per-request), point-in-time recovery enabled, configurable partition key
-- **Lambda Function** — Python 3.14, inline CRUD handler with token auth, auto-timestamps, Decimal/float handling, paginated scan, input validation (10KB body limit, max depth 5, max 50 attrs per level), HMAC-signed pagination tokens
-- **IAM Role** — Least-privilege: only DynamoDB CRUD actions scoped to the single table, plus CloudWatch Logs
+- **Secrets Manager Secret** — The 40-character auth token, generated by AWS at deploy time (about $0.40/month while the stack exists)
+- **Lambda Function** — Python 3.14, inline CRUD handler with token auth (token fetched from Secrets Manager, cached 5 minutes), auto-timestamps, Decimal/float handling, paginated scan, input validation (10KB body limit, max depth 5, max 50 attrs per level), HMAC-signed pagination tokens
+- **IAM Role** — Least-privilege: only DynamoDB CRUD actions scoped to the single table, read access to the one auth token secret, plus CloudWatch Logs
 - **CloudWatch Log Group** — Owned by the stack with 30-day retention (`LogRetentionDays` parameter), so deleting the stack deletes the logs instead of orphaning them
 - **API Gateway HTTP API** — Routes for GET (list), GET/{id}, POST, PUT/{id}, DELETE/{id} with CORS enabled
 - **Auto-deploy stage** — Changes deploy immediately, no manual stage management

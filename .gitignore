@@ -4,9 +4,11 @@ __pycache__/
 .vscode/
 .claude
 *.skill
-skills/aws-quick-endpoint/USAGE.md
-skills/aws-quick-endpoint/cloudformation-quick-endpoint.yaml
-skills/aws-quick-endpoint/endpoint-info.txt
+# aws-quick-endpoint run output, if the skill is ever run inside this repo.
+# The leading **/ keeps these matching if the skill folder moves again.
+**/aws-quick-endpoint/USAGE.md
+**/aws-quick-endpoint/cloudformation-quick-endpoint.yaml
+**/aws-quick-endpoint/endpoint-info.txt
 
 # cost-tracking runtime price cache (never commit)
 **/.pricing_cache.json

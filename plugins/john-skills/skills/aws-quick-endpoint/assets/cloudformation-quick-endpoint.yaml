@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Quick API endpoint with Lambda (CRUD) and DynamoDB, secured by token auth
+Description: Quick API endpoint with Lambda (CRUD) and DynamoDB, secured by a token generated and stored in Secrets Manager
 
 Parameters:
   ResourceName:
@@ -7,12 +7,6 @@ Parameters:
     Description: Resource name for API paths (e.g., pets, logs, records)
     AllowedPattern: '[a-z][a-z0-9-]*'
     ConstraintDescription: Must start with lowercase letter, only lowercase letters, numbers, and hyphens
-
-  AuthToken:
-    Type: String
-    Description: Bearer token for API authentication (passed in x-api-token header)
-    NoEcho: true
-    MinLength: 16
 
   PartitionKey:
     Type: String
@@ -41,6 +35,23 @@ Parameters:
     AllowedValues: [1, 3, 5, 7, 14, 30, 60, 90, 180, 365]
 
 Resources:
+  # ---- Auth Token (Secrets Manager) ----
+  # AWS generates the token, so it never passes through a shell, a template
+  # parameter, or a file. Callers fetch it with secretsmanager:GetSecretValue.
+  AuthTokenSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      Name: !Sub '${AWS::StackName}-auth-token'
+      Description: !Sub 'x-api-token value for the ${AWS::StackName} API'
+      GenerateSecretString:
+        PasswordLength: 40
+        ExcludePunctuation: true
+      Tags:
+        - Key: ManagedBy
+          Value: aws-quick-endpoint
+
   # ---- Lambda Log Group ----
   # Owned by the stack so deleting the stack deletes the logs. Without this,
   # Lambda auto-creates the group on first invoke, it never expires, and it
@@ -104,6 +115,13 @@ Resources:
                   - dynamodb:Scan
                   - dynamodb:Query
                 Resource: !GetAtt DynamoDBTable.Arn
+        - PolicyName: AuthTokenRead
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref AuthTokenSecret
 
   # ---- Lambda Function ----
   LambdaFunction:
@@ -120,19 +138,32 @@ Resources:
       Environment:
         Variables:
           TABLE_NAME: !Ref DynamoDBTable
-          AUTH_TOKEN: !Ref AuthToken
+          AUTH_SECRET_ARN: !Ref AuthTokenSecret
+          TOKEN_CACHE_SECONDS: '300'
           PARTITION_KEY: !Ref PartitionKey
       Code:
         ZipFile: |
-          import json, os, uuid, base64, hmac, hashlib
+          import json, os, uuid, base64, hmac, hashlib, time
           from datetime import datetime, timezone
           from decimal import Decimal
           import boto3
 
           db = boto3.resource('dynamodb')
           table = db.Table(os.environ['TABLE_NAME'])
-          TK = os.environ['AUTH_TOKEN']
+          sm = boto3.client('secretsmanager')
           PK = os.environ['PARTITION_KEY']
+          SECRET_ARN = os.environ['AUTH_SECRET_ARN']
+          CACHE_S = int(os.environ.get('TOKEN_CACHE_SECONDS', '300'))
+          _tok = {'v': None, 'at': 0.0}
+
+          # The token is shared config, not per-request state, so caching it
+          # across warm invocations is safe. The TTL lets a rotated token take
+          # effect within CACHE_S seconds without a redeploy.
+          def auth_token():
+              if _tok['v'] is None or time.time() - _tok['at'] > CACHE_S:
+                  _tok['v'] = sm.get_secret_value(SecretId=SECRET_ARN)['SecretString']
+                  _tok['at'] = time.time()
+              return _tok['v']
 
           class DE(json.JSONEncoder):
               def default(self, o):
@@ -155,15 +186,15 @@ Resources:
               return True
 
           def sign(payload):
-              s = hmac.new(TK.encode(), payload.encode(), hashlib.sha256).hexdigest()[:16]
+              s = hmac.new(auth_token().encode(), payload.encode(), hashlib.sha256).hexdigest()[:16]
               return f"{payload}.{s}"
 
           def unsign(token):
               parts = token.rsplit('.', 1)
               if len(parts) != 2: return None
               p, s = parts
-              exp = hmac.new(TK.encode(), p.encode(), hashlib.sha256).hexdigest()[:16]
-              if not hmac.compare_digest(s, exp): return None
+              exp = hmac.new(auth_token().encode(), p.encode(), hashlib.sha256).hexdigest()[:16]
+              if not hmac.compare_digest(s.encode(), exp.encode()): return None
               return json.loads(base64.b64decode(p))
 
           def resp(c, b):
@@ -172,7 +203,7 @@ Resources:
 
           def handler(event, context):
               hdrs = {k.lower(): v for k, v in (event.get('headers') or {}).items()}
-              if hdrs.get('x-api-token', '') != TK:
+              if not hmac.compare_digest(hdrs.get('x-api-token', '').encode(), auth_token().encode()):
                   return resp(401, {'error': 'Unauthorized'})
               method = event['requestContext']['http']['method']
               params = event.get('pathParameters') or {}
@@ -328,6 +359,10 @@ Outputs:
   LambdaFunctionName:
     Description: Lambda function name
     Value: !Ref LambdaFunction
+
+  AuthTokenSecretArn:
+    Description: Secrets Manager ARN holding the x-api-token value (fetch with get-secret-value)
+    Value: !Ref AuthTokenSecret
 
   StackName:
     Description: CloudFormation stack name (needed for cleanup)
